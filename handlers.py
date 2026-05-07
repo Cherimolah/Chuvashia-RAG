@@ -32,7 +32,7 @@ async def echo(m: Message):
     response = collection.query(query_embeddings=embeddings,  n_results=5)
     context = '\n'.join(response['documents'][0])
     messages.pop(-1)
-    messages.append({'role': 'assistant', 'content': rag_prompt.format(question=m.text, context=context)})
+    messages.append({'role': 'user', 'content': rag_prompt.format(question=m.text, context=context)})
     await db.create_message(m.from_user.id, m.text, is_from_user=True)
     response = await get_response(messages)
     await waiting_message.delete()
