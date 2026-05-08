@@ -6,11 +6,10 @@ import time
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from config import LOG_LEVEL
 
 LOG_DIR = Path(__file__).parent / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
-
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 ROOT_NAME = 'chuvashia'
 
 
