@@ -1,5 +1,10 @@
+import datetime
+
 from loader import client
 from logger import get_logger, preview, timed
+
+from pydantic import BaseModel
+import outlines
 
 log = get_logger(__name__)
 
@@ -23,6 +28,25 @@ rag_prompt = """
 ---
 
 Ответ на чувашском языке (начни с главной мысли, затем раскрой детали):"""
+
+
+agent_prompt = ('Тебе необходимо решить спрашивает ли пользователях о каких-то событиях '
+                'за конкретный промежуток времени или нет. Если пользователь задают общий вопрос передавай'
+                'need_period=false и period=null. Если пользователь спрашивает события за какой-то период то тебе'
+                ' нужно написать начало и конец периода с которого запрашивает пользователь\n\n'
+                'Текст пользователя: {0}')
+
+model = outlines.from_openai(client, "x-ai/grok-4.20")
+
+
+class PeriodModel(BaseModel):
+    start_turn: datetime.datetime
+    end_turn: datetime.datetime
+
+
+class PeriodResponse(BaseModel):
+    need_period: bool
+    period: PeriodModel | None
 
 
 def chunk_dialogue(messages, chunk_size=3, overlap=1):
@@ -129,3 +153,9 @@ async def get_response(messages: list[dict[str, str]]) -> str:
         )
     log.debug(f'LLM raw answer ({len(answer)} симв.): {preview(answer, 300)}')
     return answer
+
+
+async def extract_period(message: str) -> PeriodResponse:
+    response = model.generate(agent_prompt.format(message), PeriodResponse)
+    return PeriodResponse.model_validate_json(response)
+

@@ -1,9 +1,11 @@
+import random
+
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.command import CommandStart
 from aiogram import F
 
-from loader import dp, collection
-from llm import get_embedding, rag_prompt, get_response
+from loader import dp, collection, chroma_client
+from llm import get_embedding, rag_prompt, get_response, extract_period
 from database import db
 from logger import get_logger, preview, timed
 
@@ -45,6 +47,21 @@ async def echo(m: Message):
     waiting_message = await m.answer('⏳ Хурав кӗтӗр')
 
     try:
+        # 0. Если пользователь запрашивает период работаем с ним
+        period_response = await extract_period(m.text)
+        if period_response.need_period:
+            log.debug(
+                f'🤖 Агент решил выделить поиск по дате: Начало {period_response.period.start_turn.strftime("%d.%m.%Y %H:%M")} '
+                f'конец {period_response.period.end_turn.strftime("%d.%m.%Y %H:%M")}')
+            where_filter = {
+                "$and": [
+                    {"date": {"$gte": period_response.period.start_turn.timestamp()}},
+                    {"date": {"$lte": period_response.period.end_turn.timestamp()}},
+                ]
+            }
+        else:
+            where_filter = {}
+
         # 1. Загружаем историю диалога из БД
         history = await db.get_context(user_id)
         messages = [
@@ -61,7 +78,8 @@ async def echo(m: Message):
         # 3. Поиск похожих фрагментов в ChromaDB
         with timed(log, 'поиск в ChromaDB'):
             response = collection.query(
-                query_embeddings=embeddings, n_results=5
+                query_embeddings=embeddings, n_results=5,
+                where=where_filter
             )
 
         docs = response.get('documents', [[]])[0]
