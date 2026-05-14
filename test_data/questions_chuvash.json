@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "version": "1.0",
+    "language": "chuvash/russian",
+    "total_questions": 10,
+    "categories": [
+      "education",
+      "administration",
+      "factual_lookup"
+    ],
+    "description": "Retrieval-friendly вопросы для RAG evaluation по тексту о Чувашской государственной сельскохозяйственной академии."
+  },
+  "questions": [
+    {
+      "id": 1,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Ректор тивӗҫне вӑхӑтлӑха кам пурнӑҫлӗ?",
+      "question_ru": "Кто временно исполняет обязанности ректора?",
+      "ground_truth": "Илья Царевский.",
+      "ground_truth_ru": "Илья Царевский.",
+      "expected_context_keywords": [
+        "Илья Царевский",
+        "ректор"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 2,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Илья Царевский миҫе ҫулта?",
+      "question_ru": "Сколько лет Илье Царевскому?",
+      "ground_truth": "31 ҫул.",
+      "ground_truth_ru": "31 год.",
+      "expected_context_keywords": [
+        "31 ҫул",
+        "Илья Царевский"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 3,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Илья Царевский 2013 ҫултанпа мӗнле тивӗҫре ӗҫленӗ?",
+      "question_ru": "Какую должность Илья Царевский занимал с 2013 года?",
+      "ground_truth": "Проректор.",
+      "ground_truth_ru": "Проректор.",
+      "expected_context_keywords": [
+        "2013",
+        "проректор"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 4,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Илья Царевский хӑш факультетра вӗреннӗ?",
+      "question_ru": "На каком факультете учился Илья Царевский?",
+      "ground_truth": "Ветеринари факультетӗнче.",
+      "ground_truth_ru": "На ветеринарном факультете.",
+      "expected_context_keywords": [
+        "ветеринари факультет"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 5,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Илья Царевский академине хӑҫан пӗтернӗ?",
+      "question_ru": "Когда Илья Царевский окончил академию?",
+      "ground_truth": "2006 ҫулта.",
+      "ground_truth_ru": "В 2006 году.",
+      "expected_context_keywords": [
+        "2006 ҫул"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 6,
+      "category": "administration",
+      "difficulty": "easy",
+      "question": "Александр Акимов миҫе ҫулта?",
+      "question_ru": "Сколько лет Александру Акимову?",
+      "ground_truth": "69 ҫул.",
+      "ground_truth_ru": "69 лет.",
+      "expected_context_keywords": [
+        "69 ҫул",
+        "Александр Акимов"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 7,
+      "category": "administration",
+      "difficulty": "easy",
+      "question": "Александр Акимов мӗнле тивӗҫе пурнӑҫланӑ?",
+      "question_ru": "Какие обязанности исполнял Александр Акимов?",
+      "ground_truth": "Ректор тивӗҫне.",
+      "ground_truth_ru": "Обязанности ректора.",
+      "expected_context_keywords": [
+        "Александр Акимов",
+        "ректор"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 8,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Чӑваш патшалӑх ял хуҫалӑх академийӗнче мӗн пулнӑ?",
+      "question_ru": "Что произошло в Чувашской государственной сельскохозяйственной академии?",
+      "ground_truth": "Улшӑнусем пулнӑ.",
+      "ground_truth_ru": "Произошли изменения.",
+      "expected_context_keywords": [
+        "улшӑнусем",
+        "академи"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 9,
+      "category": "education",
+      "difficulty": "easy",
+      "question": "Илья Царевский хӑш академине пӗтернӗ?",
+      "question_ru": "Какую академию окончил Илья Царевский?",
+      "ground_truth": "Чӑваш патшалӑх ял хуҫалӑх академийӗ.",
+      "ground_truth_ru": "Чувашскую государственную сельскохозяйственную академию.",
+      "expected_context_keywords": [
+        "Чӑваш патшалӑх ял хуҫалӑх академийӗ"
+      ],
+      "is_answerable": true
+    },
+    {
+      "id": 10,
+      "category": "administration",
+      "difficulty": "easy",
+      "question": "Александр Акимов ректор тивӗҫне хӑҫан пурнӑҫлама тытӑннӑ?",
+      "question_ru": "Когда Александр Акимов начал исполнять обязанности ректора?",
+      "ground_truth": "Чӳк уйӑхӗн вӗҫӗнче.",
+      "ground_truth_ru": "В конце ноября.",
+      "expected_context_keywords": [
+        "чӳк уйӑхӗ",
+        "ректор"
+      ],
+      "is_answerable": true
+    }
+  ]
+}

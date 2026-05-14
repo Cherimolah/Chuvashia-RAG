@@ -1,0 +1,154 @@
+{
+  "timestamp": "2025-05-14T12:34:56.789123",
+  "total_questions_evaluated": 50,
+  "llm_model": "deepseek/deepseek-v3.2",
+  "embedding_model": "qwen/qwen3-embedding-8b",
+  "chunking_config": {
+    "chunk_size": 3,
+    "overlap": 1
+  },
+
+  "summary": {
+    "faithfulness": {
+      "mean": 0.7812,
+      "std":  0.1543,
+      "min":  0.3333,
+      "max":  1.0000,
+      "count": 50
+    },
+    "context_precision": {
+      "mean": 0.6934,
+      "std":  0.2101,
+      "min":  0.2000,
+      "max":  1.0000,
+      "count": 50
+    },
+    "context_recall": {
+      "mean": 0.7145,
+      "std":  0.1876,
+      "min":  0.2500,
+      "max":  1.0000,
+      "count": 50
+    },
+    "answer_relevancy": {
+      "mean": 0.8023,
+      "std":  0.1234,
+      "min":  0.4321,
+      "max":  1.0000,
+      "count": 50
+    }
+  },
+
+  "per_question": [
+    {
+      "question": "Чӑваш халӑхӗн тӗп уявӗ мӗн?",
+      "answer": "Акатуй — чӑваш халӑхӗн тӗп уявӗ...",
+      "contexts": [
+        "Акатуй — ежегодный праздник чувашского народа...",
+        "Чувашские традиции включают многочисленные праздники...",
+        "Сельское хозяйство занимало особое место в жизни чувашей..."
+      ],
+      "ground_truth": "Акатуй — чӑваш халӑхӗн тӗп уявӗ...",
+      "faithfulness": 0.9167,
+      "context_precision": 0.8000,
+      "context_recall": 0.7500,
+      "answer_relevancy": 0.8934,
+      "category": "traditions",
+      "difficulty": "easy",
+      "id": 2
+    },
+    {
+      "question": "Чӑваш чӗлхи хӑш чӗлхе ушкӑнне кӗрет?",
+      "answer": "Чăваш чĕлхи тюрк чĕлхисен ушкăнне кĕрет...",
+      "contexts": [
+        "Чувашский язык является тюркским...",
+        "Булгарская группа тюркских языков...",
+        "Лингвистические особенности чувашского языка..."
+      ],
+      "ground_truth": "Чувашский язык относится к тюркской группе...",
+      "faithfulness": 0.8333,
+      "context_precision": 0.7500,
+      "context_recall": 0.8000,
+      "answer_relevancy": 0.8756,
+      "category": "language",
+      "difficulty": "easy",
+      "id": 3
+    }
+  ],
+
+  "weak_examples": [
+    {
+      "id": 17,
+      "question": "Чăваш чĕлхинче диалектсем пур-и?",
+      "faithfulness": 0.4167,
+      "context_precision": 0.3000,
+      "context_recall": 0.4500,
+      "answer_relevancy": 0.5234,
+      "category": "language",
+      "difficulty": "hard"
+    }
+  ],
+
+  "noise_sensitivity": {
+    "noise_0pct": {
+      "noise_level": 0.0,
+      "n_samples": 50,
+      "metrics": {
+        "faithfulness":    {"mean": 0.7812, "std": 0.1543},
+        "answer_relevancy":{"mean": 0.8023, "std": 0.1234}
+      }
+    },
+    "noise_10pct": {
+      "noise_level": 0.1,
+      "n_samples": 50,
+      "metrics": {
+        "faithfulness":    {"mean": 0.7534, "std": 0.1612},
+        "answer_relevancy":{"mean": 0.7891, "std": 0.1301}
+      }
+    },
+    "noise_30pct": {
+      "noise_level": 0.3,
+      "n_samples": 50,
+      "metrics": {
+        "faithfulness":    {"mean": 0.6923, "std": 0.1789},
+        "answer_relevancy":{"mean": 0.7456, "std": 0.1456}
+      }
+    },
+    "noise_50pct": {
+      "noise_level": 0.5,
+      "n_samples": 50,
+      "metrics": {
+        "faithfulness":    {"mean": 0.6012, "std": 0.2134},
+        "answer_relevancy":{"mean": 0.6789, "std": 0.1678}
+      }
+    },
+    "analysis": {
+      "baseline_noise": 0.0,
+      "metric_degradation": {
+        "faithfulness": {
+          "noise_10pct": {"absolute": 0.7534, "drop_percent": 3.6},
+          "noise_30pct": {"absolute": 0.6923, "drop_percent": 11.4},
+          "noise_50pct": {"absolute": 0.6012, "drop_percent": 23.1}
+        },
+        "answer_relevancy": {
+          "noise_10pct": {"absolute": 0.7891, "drop_percent": 1.6},
+          "noise_30pct": {"absolute": 0.7456, "drop_percent": 7.1},
+          "noise_50pct": {"absolute": 0.6789, "drop_percent": 15.4}
+        }
+      },
+      "recommendations": [
+        "⚠️  faithfulness падает на 23% при noise_50pct — рекомендуется улучшить re-ranking или фильтрацию нерелевантных документов."
+      ]
+    }
+  },
+
+  "recommendations": [
+    "🔴 Context Precision низкий (0.69): ChromaDB возвращает нерелевантные документы. Попробуй уменьшить n_results (сейчас 5) или применить re-ranking (Cross-Encoder).",
+    "📌 Чувашский язык: embedding-модель qwen3-embedding-8b обучена преимущественно на китайском/английском. Рекомендуется оценить multilingual e5-large или LaBSE как альтернативу.",
+    "📌 Чанкинг диалога: текущий chunk_size=3, overlap=1 при коротком диалоге создаёт дублирующиеся чанки. Рассмотри использование только последнего сообщения для эмбеддинга.",
+    "📌 В ChromaDB используется только эмбеддинг первого чанка диалога. Попробуй mean-pooling векторов всех чанков для более точного представления контекста.",
+    "📌 Добавь метаданные в ChromaDB (источник, дата, категория) и используй metadata filtering для повышения Context Precision.",
+    "📌 Для чувашскоязычных вопросов рассмотри Hypothetical Document Embeddings (HyDE).",
+    "⚠️  faithfulness падает на 23% при 50% шуме — улучши re-ranking."
+  ]
+}
