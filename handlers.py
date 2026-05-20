@@ -60,7 +60,7 @@ async def echo(m: Message):
                 ]
             }
         else:
-            where_filter = {}
+            where_filter = None
 
         # 1. Загружаем историю диалога из БД
         history = await db.get_context(user_id)
@@ -78,7 +78,7 @@ async def echo(m: Message):
         # 3. Поиск похожих фрагментов в ChromaDB
         with timed(log, 'поиск в ChromaDB'):
             response = collection.query(
-                query_embeddings=embeddings, n_results=5,
+                query_embeddings=embeddings, n_results=15,
                 where=where_filter
             )
 
@@ -91,7 +91,41 @@ async def echo(m: Message):
             doc_id = f' id={ids[i]}' if i < len(ids) else ''
             log.debug(f'  [{i}]{doc_id}{dist}: {preview(doc, 150)}')
 
-        context = '\n'.join(docs)
+        unique_urls = set()
+        for metadata_list in response["metadatas"]:
+            for meta in metadata_list:
+                if meta and "url" in meta:
+                    unique_urls.add(meta["url"])
+
+        # 3. Для каждого уникального URL получаем все его чанки
+        full_articles = {}
+        for url in unique_urls:
+            # Важно: limit должен быть достаточно большим, чтобы вместить все абзацы статьи.
+            # Если статей очень длинные, можно увеличить число или сделать пагинацию.
+            chunks = collection.get(
+                where={"url": url},
+                limit=10_000,  # максимальное число абзацев в одной статье
+                include=["documents", "metadatas"]
+            )
+
+            # 4. Сортируем чанки по индексу абзаца из поля id (url#номер)
+            paragraphs = []
+            for doc, meta, doc_id in zip(chunks["documents"], chunks["metadatas"], chunks["ids"]):
+                # Извлекаем номер абзаца, предполагая формат "http://...#N"
+                try:
+                    index = int(doc_id.split("#")[-1])
+                except (ValueError, IndexError):
+                    index = 0  # fallback
+                paragraphs.append((index, doc))
+
+            paragraphs.sort(key=lambda x: x[0])
+            full_text = "\n".join(text for _, text in paragraphs)
+            full_articles[url] = {'text': full_text, 'title': meta['title']}
+
+        context = ''
+        for article in full_articles.values():
+            context += f'{article["title"]}\n\n{article["text"]}\n\n\n'
+
         log.debug(f'Склеенный контекст для RAG: {len(context)} симв.')
 
         # 4. Заменяем последний user-message на промпт с контекстом
