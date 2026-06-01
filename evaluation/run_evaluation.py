@@ -31,6 +31,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from logger import get_logger
+from config import TEMPERATURE, MAX_TOKENS
 
 log = get_logger(__name__)
 
@@ -134,6 +135,8 @@ async def run_rag_for_question(
     completion = await openai_client.chat.completions.create(
         model=COMPLETION_MODEL,
         messages=llm_messages,
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
     )
     answer = completion.choices[0].message.content
 
@@ -420,6 +423,7 @@ async def run_evaluation_pipeline(
     skip_noise: bool = False,
     concurrency: int = 3,
     categories: list[str] | None = None,
+    metric_names: list[str] | None = None,
 ) -> dict:
     """
     Полный пайплайн оценки:
@@ -489,7 +493,7 @@ async def run_evaluation_pipeline(
     log.info("Шаг 4/5: Вычисление RAGAS метрик…")
     from evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
 
-    evaluator = RAGEvaluator()
+    evaluator = RAGEvaluator(metric_names=metric_names)
     results_df = evaluator.compute_metrics(data_dict)
     summary = evaluator.summarize(results_df)
     weak_df = evaluator.find_weak_examples(results_df, threshold=0.5)
@@ -577,6 +581,9 @@ def parse_args() -> argparse.Namespace:
   # Без теста шума (быстрее)
   python -m evaluation.run_evaluation --test-size 50 --skip-noise
 
+  # Только две метрики (вдвое меньше токенов)
+  python -m evaluation.run_evaluation --test-size 50 --metrics faithfulness answer_relevancy
+
   # Больше параллельных запросов
   python -m evaluation.run_evaluation --test-size 50 --concurrency 5
         """,
@@ -605,6 +612,11 @@ def parse_args() -> argparse.Namespace:
         help="Фильтр по категориям вопросов",
     )
     parser.add_argument(
+        "--metrics", nargs="+",
+        choices=["faithfulness", "context_precision", "context_recall", "answer_relevancy"],
+        help="Метрики для вычисления (по умолчанию — все 4). Меньше метрик = меньше токенов.",
+    )
+    parser.add_argument(
         "--log-level", default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Уровень логирования",
@@ -630,6 +642,7 @@ def main():
                 skip_noise=args.skip_noise,
                 concurrency=args.concurrency,
                 categories=args.categories,
+                metric_names=args.metrics,
             )
         )
         sys.exit(0)
