@@ -7,6 +7,7 @@ from aiogram import F
 from loader import dp, collection, chroma_client
 from llm import get_embedding, rag_prompt, get_response, extract_period
 from database import db
+from config import N_RESULTS
 from logger import get_logger, preview, timed
 
 log = get_logger(__name__)
@@ -78,7 +79,7 @@ async def echo(m: Message):
         # 3. Поиск похожих фрагментов в ChromaDB
         with timed(log, 'поиск в ChromaDB'):
             response = collection.query(
-                query_embeddings=embeddings, n_results=15,
+                query_embeddings=embeddings, n_results=N_RESULTS,
                 where=where_filter
             )
 
