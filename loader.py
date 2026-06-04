@@ -25,7 +25,7 @@ log.info('OpenRouter клиент готов (base_url=https://openrouter.ai/api
 
 # --- ChromaDB ---
 log.debug('Инициализация ChromaDB (path=chroma_db)…')
-chroma_client = chromadb.PersistentClient(path='chroma_db')
+chroma_client = chromadb.PersistentClient(path='chroma_db_e5')
 _collections = chroma_client.list_collections()
 
 if not _collections:

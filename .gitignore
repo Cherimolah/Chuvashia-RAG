@@ -216,6 +216,27 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-chroma_db/*
+# ChromaDB databases
+chroma_db/
+chroma_db_e5/
+chroma_db_new/
 
+# Large data files
+chuvash_news_final.json
+
+# Evaluation raw logs and reports
+evaluation_logs/raw_*.json
+evaluation_logs/report_*.json
+
+# Temporary test artifacts
+test_articles_*.csv
+test_articles_*.json
+test_articles_report.md
+
+# Chat logs
 chat_log.md
+chat_log2.md
+chat_log3.md
+
+# App logs
+logs/

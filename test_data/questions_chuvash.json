@@ -1,151 +1,231 @@
 {
   "meta": {
-    "version": "1.0",
+    "version": "8.0",
     "language": "chuvash/russian",
-    "total_questions": 10,
-    "categories": [
-      "education",
-      "administration",
-      "factual_lookup"
-    ],
-    "description": "Retrieval-friendly вопросы для RAG evaluation по тексту о Чувашской государственной сельскохозяйственной академии."
+    "total_questions": 20,
+    "categories": ["culture", "sport", "society", "politics"],
+    "difficulty_mix": "easy + medium",
+    "description": "20 вопросов по реальным статьям из базы с однозначными ответами."
   },
   "questions": [
     {
       "id": 1,
-      "category": "education",
+      "category": "sport",
       "difficulty": "easy",
-      "question": "Ректор тивӗҫне вӑхӑтлӑха кам пурнӑҫлӗ?",
-      "question_ru": "Кто временно исполняет обязанности ректора?",
-      "ground_truth": "Илья Царевский.",
-      "ground_truth_ru": "Илья Царевский.",
-      "expected_context_keywords": [
-        "Илья Царевский",
-        "ректор"
-      ],
+      "question": "Анатолий Васильев Глазгора мӗнле медаль ҫӗнсе илнӗ?",
+      "question_ru": "Какую медаль завоевал Анатолий Васильев в Глазго?",
+      "ground_truth": "Бронза медаль.",
+      "ground_truth_ru": "Бронзовую медаль.",
+      "source_url": "https://chuvash.org/news/24.html",
       "is_answerable": true
     },
     {
       "id": 2,
-      "category": "education",
+      "category": "sport",
       "difficulty": "easy",
-      "question": "Илья Царевский миҫе ҫулта?",
-      "question_ru": "Сколько лет Илье Царевскому?",
-      "ground_truth": "31 ҫул.",
-      "ground_truth_ru": "31 год.",
-      "expected_context_keywords": [
-        "31 ҫул",
-        "Илья Царевский"
-      ],
+      "question": "Анатолий Васильев миҫе ҫулхи пулнӑ Глазгора медаль ҫӗнтернӗ чухне?",
+      "question_ru": "Сколько лет было Анатолию Васильеву, когда он завоевал медаль в Глазго?",
+      "ground_truth": "20 ҫулхи.",
+      "ground_truth_ru": "20 лет.",
+      "source_url": "https://chuvash.org/news/24.html",
       "is_answerable": true
     },
     {
       "id": 3,
-      "category": "education",
+      "category": "culture",
       "difficulty": "easy",
-      "question": "Илья Царевский 2013 ҫултанпа мӗнле тивӗҫре ӗҫленӗ?",
-      "question_ru": "Какую должность Илья Царевский занимал с 2013 года?",
-      "ground_truth": "Проректор.",
-      "ground_truth_ru": "Проректор.",
-      "expected_context_keywords": [
-        "2013",
-        "проректор"
-      ],
+      "question": "«Сцена Чувашии» хаҫатӑн тиражӗ миҫе экземпляр пулнӑ?",
+      "question_ru": "Каков был тираж газеты «Сцена Чувашии»?",
+      "ground_truth": "20 000 экземпляр.",
+      "ground_truth_ru": "20 000 экземпляров.",
+      "source_url": "https://chuvash.org/news/28.html",
       "is_answerable": true
     },
     {
       "id": 4,
-      "category": "education",
+      "category": "culture",
       "difficulty": "easy",
-      "question": "Илья Царевский хӑш факультетра вӗреннӗ?",
-      "question_ru": "На каком факультете учился Илья Царевский?",
-      "ground_truth": "Ветеринари факультетӗнче.",
-      "ground_truth_ru": "На ветеринарном факультете.",
-      "expected_context_keywords": [
-        "ветеринари факультет"
-      ],
+      "question": "«Куба – далекая и близкая» куравра миҫе ӳнерҫин ӗҫӗсем пулнӑ?",
+      "question_ru": "Сколько художников представили работы на выставке «Куба – далекая и близкая»?",
+      "ground_truth": "15 куба ӳнерҫин ӗҫӗсем.",
+      "ground_truth_ru": "15 кубинских художников.",
+      "source_url": "https://chuvash.org/news/16.html",
       "is_answerable": true
     },
     {
       "id": 5,
-      "category": "education",
+      "category": "society",
       "difficulty": "easy",
-      "question": "Илья Царевский академине хӑҫан пӗтернӗ?",
-      "question_ru": "Когда Илья Царевский окончил академию?",
-      "ground_truth": "2006 ҫулта.",
-      "ground_truth_ru": "В 2006 году.",
-      "expected_context_keywords": [
-        "2006 ҫул"
-      ],
+      "question": "Мускава Чӑваш Енрен миҫе машина тавар илсе кайнӑ?",
+      "question_ru": "Сколько машин с товарами из Чувашии отправилось в Москву?",
+      "ground_truth": "50 машина.",
+      "ground_truth_ru": "50 машин.",
+      "source_url": "https://chuvash.org/news/9.html",
       "is_answerable": true
     },
     {
       "id": 6,
-      "category": "administration",
-      "difficulty": "easy",
-      "question": "Александр Акимов миҫе ҫулта?",
-      "question_ru": "Сколько лет Александру Акимову?",
-      "ground_truth": "69 ҫул.",
-      "ground_truth_ru": "69 лет.",
-      "expected_context_keywords": [
-        "69 ҫул",
-        "Александр Акимов"
-      ],
+      "category": "society",
+      "difficulty": "medium",
+      "question": "Мускава кайнӑ тавара Чӑваш Енри миҫе предприяти хатӗрленӗ?",
+      "question_ru": "Сколько предприятий Чувашии подготовили товары для Москвы?",
+      "ground_truth": "40 предприятипе организаци.",
+      "ground_truth_ru": "40 предприятий и организаций.",
+      "source_url": "https://chuvash.org/news/9.html",
       "is_answerable": true
     },
     {
       "id": 7,
-      "category": "administration",
+      "category": "society",
       "difficulty": "easy",
-      "question": "Александр Акимов мӗнле тивӗҫе пурнӑҫланӑ?",
-      "question_ru": "Какие обязанности исполнял Александр Акимов?",
-      "ground_truth": "Ректор тивӗҫне.",
-      "ground_truth_ru": "Обязанности ректора.",
-      "expected_context_keywords": [
-        "Александр Акимов",
-        "ректор"
-      ],
+      "question": "Шупашкарти пӗрремӗш хула пульницине уҫнӑранпа миҫе ҫул ҫитнӗ?",
+      "question_ru": "Сколько лет исполнилось первой городской больнице Чебоксар?",
+      "ground_truth": "75 ҫул.",
+      "ground_truth_ru": "75 лет.",
+      "source_url": "https://chuvash.org/news/10.html",
       "is_answerable": true
     },
     {
       "id": 8,
-      "category": "education",
+      "category": "politics",
       "difficulty": "easy",
-      "question": "Чӑваш патшалӑх ял хуҫалӑх академийӗнче мӗн пулнӑ?",
-      "question_ru": "Что произошло в Чувашской государственной сельскохозяйственной академии?",
-      "ground_truth": "Улшӑнусем пулнӑ.",
-      "ground_truth_ru": "Произошли изменения.",
-      "expected_context_keywords": [
-        "улшӑнусем",
-        "академи"
-      ],
+      "question": "«Аликовский вестник» хаҫатӑн тиражӗ миҫе экземпляр пулнӑ?",
+      "question_ru": "Каков тираж газеты «Аликовский вестник»?",
+      "ground_truth": "900 экземпляр.",
+      "ground_truth_ru": "900 экземпляров.",
+      "source_url": "https://chuvash.org/news/60.html",
       "is_answerable": true
     },
     {
       "id": 9,
-      "category": "education",
-      "difficulty": "easy",
-      "question": "Илья Царевский хӑш академине пӗтернӗ?",
-      "question_ru": "Какую академию окончил Илья Царевский?",
-      "ground_truth": "Чӑваш патшалӑх ял хуҫалӑх академийӗ.",
-      "ground_truth_ru": "Чувашскую государственную сельскохозяйственную академию.",
-      "expected_context_keywords": [
-        "Чӑваш патшалӑх ял хуҫалӑх академийӗ"
-      ],
+      "category": "society",
+      "difficulty": "medium",
+      "question": "Чӑваш Вики энциклопедийӗнчи пинмӗш статья мӗн пирки пулнӑ?",
+      "question_ru": "О чём была тысячная статья в чувашской Википедии?",
+      "ground_truth": "Тимухха Хветӗрӗ пирки.",
+      "ground_truth_ru": "О Тимофееве Фёдоре Тимофеевиче (Тимухха Хветӗрӗ).",
+      "source_url": "https://chuvash.org/news/13.html",
       "is_answerable": true
     },
     {
       "id": 10,
-      "category": "administration",
+      "category": "society",
+      "difficulty": "medium",
+      "question": "Тимофеев Фёдор Тимофеевич хӑш ялта ҫуралнӑ?",
+      "question_ru": "В какой деревне родился Тимофеев Фёдор Тимофеевич?",
+      "ground_truth": "Якаткасси ялӗнче.",
+      "ground_truth_ru": "В деревне Якаткасси.",
+      "source_url": "https://chuvash.org/news/13.html",
+      "is_answerable": true
+    },
+    {
+      "id": 11,
+      "category": "sport",
       "difficulty": "easy",
-      "question": "Александр Акимов ректор тивӗҫне хӑҫан пурнӑҫлама тытӑннӑ?",
-      "question_ru": "Когда Александр Акимов начал исполнять обязанности ректора?",
-      "ground_truth": "Чӳк уйӑхӗн вӗҫӗнче.",
-      "ground_truth_ru": "В конце ноября.",
-      "expected_context_keywords": [
-        "чӳк уйӑхӗ",
-        "ректор"
-      ],
+      "question": "Владимир хулинче иртнӗ йывӑр атлетика чемпионачӗнче Чӑваш Енри ҫӗнӗ рекорда кам лартнӑ?",
+      "question_ru": "Кто установил новый рекорд Чувашии на чемпионате России по тяжёлой атлетике во Владимире?",
+      "ground_truth": "Вячеслав Ластухин.",
+      "ground_truth_ru": "Вячеслав Ластухин.",
+      "source_url": "https://chuvash.org/news/20.html",
+      "is_answerable": true
+    },
+    {
+      "id": 12,
+      "category": "sport",
+      "difficulty": "easy",
+      "question": "Олимпиада Иванова Европӑн чи малти вунӑ спортсменкин шутне мӗн енӗпе кӗнӗ?",
+      "question_ru": "В каком виде спорта Олимпиада Иванова вошла в топ-10 Европы?",
+      "ground_truth": "Ҫӑмӑл атлетика спортсменкисем шутне кӗнӗ — 20 ҫухрӑма спортла утавӗнче.",
+      "ground_truth_ru": "В спортивной ходьбе на 20 км.",
+      "source_url": "https://chuvash.org/news/71.html",
+      "is_answerable": true
+    },
+    {
+      "id": 13,
+      "category": "sport",
+      "difficulty": "easy",
+      "question": "Кӑкшӑмри вӑтам шкулӗнче мӗн уҫнӑ?",
+      "question_ru": "Что открыли в средней школе Кугеси?",
+      "ground_truth": "Ҫӗнӗ спортзал.",
+      "ground_truth_ru": "Новый спортивный зал.",
+      "source_url": "https://chuvash.org/news/75.html",
+      "is_answerable": true
+    },
+    {
+      "id": 14,
+      "category": "culture",
+      "difficulty": "easy",
+      "question": "«Сириус» ача-пӑча театр студийӗ мӗн ҫулта пуҫарӑнтарса ярнӑ?",
+      "question_ru": "В каком году была основана детская театральная студия «Сириус»?",
+      "ground_truth": "1994 ҫулта.",
+      "ground_truth_ru": "В 1994 году.",
+      "source_url": "https://chuvash.org/news/34.html",
+      "is_answerable": true
+    },
+    {
+      "id": 15,
+      "category": "culture",
+      "difficulty": "easy",
+      "question": "«Сириус» театр студийӗ хӑш районти халӑх театрӗ ҫумӗнче ӗҫлет?",
+      "question_ru": "При каком районном народном театре работает студия «Сириус»?",
+      "ground_truth": "Елчӗкӗн халӑх театрӗ ҫумӗнче.",
+      "ground_truth_ru": "При народном театре Яльчикского района.",
+      "source_url": "https://chuvash.org/news/34.html",
+      "is_answerable": true
+    },
+    {
+      "id": 16,
+      "category": "culture",
+      "difficulty": "easy",
+      "question": "Ҫӗнӗ Шупашкар хӑйӗн миҫемӗш ҫулхи юбилейне чӳк уйӑхӗнче уявланӑ?",
+      "question_ru": "Какой юбилей отмечал Новочебоксарск в ноябре 2005 года?",
+      "ground_truth": "45 ҫулхи юбилей.",
+      "ground_truth_ru": "45-летний юбилей.",
+      "source_url": "https://chuvash.org/news/33.html",
+      "is_answerable": true
+    },
+    {
+      "id": 17,
+      "category": "society",
+      "difficulty": "easy",
+      "question": "Экономика Чӑваш Енӗнче 9 уйӑх хушшинче миҫе процента ӳснӗ?",
+      "question_ru": "На сколько процентов выросла экономика Чувашии за 9 месяцев?",
+      "ground_truth": "110,5% тарин ӳснӗ.",
+      "ground_truth_ru": "На 110,5%.",
+      "source_url": "https://chuvash.org/news/19.html",
+      "is_answerable": true
+    },
+    {
+      "id": 18,
+      "category": "society",
+      "difficulty": "easy",
+      "question": "Шупашкарти Ленин районӗнчи социаллӑ центрта мӗнле ят курав иртнӗ?",
+      "question_ru": "Какая выставка прошла в центре социальной помощи Ленинского района Чебоксар?",
+      "ground_truth": "«Анне - тӑван хӗвелӗм» ятлӑ курав.",
+      "ground_truth_ru": "Выставка «Анне - тӑван хӗвелӗм» («Мама — мое солнышко»).",
+      "source_url": "https://chuvash.org/news/31.html",
+      "is_answerable": true
+    },
+    {
+      "id": 19,
+      "category": "politics",
+      "difficulty": "easy",
+      "question": "Чӑваш Республикин суверенитечӗ ҫинчен калакан Декларацине йышӑннӑранпа 2005 ҫулта миҫе ҫул ҫитнӗ?",
+      "question_ru": "Сколько лет исполнилось Декларации о суверенитете Чувашской Республики в 2005 году?",
+      "ground_truth": "15 ҫул.",
+      "ground_truth_ru": "15 лет.",
+      "source_url": "https://chuvash.org/news/29.html",
+      "is_answerable": true
+    },
+    {
+      "id": 20,
+      "category": "culture",
+      "difficulty": "easy",
+      "question": "«Патӑръел энциклопедиӗ» кӗнекин презентацийӗ хӑш районта иртнӗ?",
+      "question_ru": "В каком районе прошла презентация книги «Патӑръел энциклопедиӗ»?",
+      "ground_truth": "Патӑръел районӗнче.",
+      "ground_truth_ru": "В Батыревском районе.",
+      "source_url": "https://chuvash.org/news/11.html",
       "is_answerable": true
     }
   ]
