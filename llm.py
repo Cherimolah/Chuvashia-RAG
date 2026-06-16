@@ -1,7 +1,9 @@
 import datetime
 
+import numpy as np
 from loader import client
 from logger import get_logger, preview, timed
+from config import TEMPERATURE, MAX_TOKENS, TOP_P, FREQUENCY_PENALTY, PRESENCE_PENALTY
 
 from pydantic import BaseModel
 import outlines
@@ -91,15 +93,6 @@ async def get_embedding(messages: list[dict[str, str]]) -> list[float]:
     for i, t in enumerate(texts_only):
         log.debug(f'  чанк[{i}] ({len(t)} симв.): {preview(t, 150)}')
 
-    if len(texts_only) > 1:
-        log.warning(
-            f'⚠️  Эмбеддятся {len(texts_only)} чанков, '
-            f'но в Chroma уйдёт только эмбеддинг ПЕРВОГО '
-            f'(см. embedding.data[0].embedding в get_embedding). '
-            f'Возможно, стоит усреднить векторы или использовать последний чанк '
-            f'(он соответствует последнему запросу пользователя).'
-        )
-
     with timed(log, f'API запрос эмбеддингов ({EMBEDDING_MODEL})'):
         embedding = client.embeddings.create(
             model=EMBEDDING_MODEL,
@@ -107,7 +100,9 @@ async def get_embedding(messages: list[dict[str, str]]) -> list[float]:
             encoding_format="float"
         )
 
-    vec = embedding.data[0].embedding
+    vectors = [d.embedding for d in embedding.data]
+    vec = np.mean(vectors, axis=0).tolist()
+    log.debug(f'Mean pooling: усреднено {len(vectors)} векторов')
     usage = getattr(embedding, 'usage', None)
     extra = ''
     if usage is not None:
@@ -141,6 +136,11 @@ async def get_response(messages: list[dict[str, str]]) -> str:
         completion = client.chat.completions.create(
             model=COMPLETION_MODEL,
             messages=messages,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+            top_p=TOP_P,
+            frequency_penalty=FREQUENCY_PENALTY,
+            presence_penalty=PRESENCE_PENALTY,
         )
 
     answer = completion.choices[0].message.content

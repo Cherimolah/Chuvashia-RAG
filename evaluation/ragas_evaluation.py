@@ -61,6 +61,8 @@ load_dotenv()
 
 log = get_logger(__name__)
 
+from config import MAX_TOKENS
+
 # =========================================================
 # Константы
 # =========================================================
@@ -71,6 +73,8 @@ OPENROUTER_TOKEN = os.getenv("OPENROUTER_TOKEN", "")
 # Модели (должны совпадать с llm.py)
 EVAL_LLM_MODEL = "deepseek/deepseek-v3.2"
 EVAL_EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
+
+VALID_METRIC_NAMES = {"faithfulness", "context_precision", "context_recall", "answer_relevancy"}
 
 # Шум: фрагменты для теста шума (нерелевантные тексты)
 NOISE_DOCUMENTS = [
@@ -106,13 +110,13 @@ def _make_langchain_llm() -> ChatOpenAI:
             "OPENROUTER_TOKEN не задан в .env. "
             "RAGAS не сможет вызвать LLM для оценки."
         )
-    log.debug(f"Создаю LangChain ChatOpenAI → {EVAL_LLM_MODEL}")
+    log.debug(f"Создаю LangChain ChatOpenAI → {EVAL_LLM_MODEL}, max_tokens={MAX_TOKENS}")
     return ChatOpenAI(
         model=EVAL_LLM_MODEL,
         openai_api_key=OPENROUTER_TOKEN,
         openai_api_base=OPENROUTER_BASE_URL,
         temperature=0.0,
-        max_tokens=1024,
+        max_tokens=MAX_TOKENS,
     )
 
 
@@ -203,6 +207,7 @@ class RAGEvaluator:
         self,
         llm: ChatOpenAI | None = None,
         embeddings: OpenAIEmbeddings | None = None,
+        metric_names: list[str] | None = None,
     ):
         log.info("Инициализация RAGEvaluator…")
         self._llm = llm or _make_langchain_llm()
@@ -212,7 +217,7 @@ class RAGEvaluator:
         self._ragas_llm = LangchainLLMWrapper(self._llm)
         self._ragas_embeddings = LangchainEmbeddingsWrapper(self._embeddings)
 
-        # Метрики с кастомными промптами (русский язык для оценщика)
+        # Экземпляры всех метрик (создаём всегда, чтобы можно было переиспользовать)
         self.faithfulness = Faithfulness(llm=self._ragas_llm)
         self.context_precision = ContextPrecision(llm=self._ragas_llm)
         self.context_recall = ContextRecall(llm=self._ragas_llm)
@@ -221,14 +226,23 @@ class RAGEvaluator:
             embeddings=self._ragas_embeddings,
         )
 
-        self.metrics = [
-            self.faithfulness,
-            self.context_precision,
-            self.context_recall,
-            self.answer_relevancy,
-        ]
-        log.info("RAGEvaluator готов, метрики: faithfulness, context_precision, "
-                 "context_recall, answer_relevancy")
+        all_metrics = {
+            "faithfulness": self.faithfulness,
+            "context_precision": self.context_precision,
+            "context_recall": self.context_recall,
+            "answer_relevancy": self.answer_relevancy,
+        }
+
+        if metric_names is not None:
+            unknown = set(metric_names) - VALID_METRIC_NAMES
+            if unknown:
+                raise ValueError(f"Неизвестные метрики: {unknown}. Допустимые: {VALID_METRIC_NAMES}")
+            self.metrics = [all_metrics[n] for n in metric_names]
+        else:
+            self.metrics = list(all_metrics.values())
+
+        names = [type(m).__name__ for m in self.metrics]
+        log.info(f"RAGEvaluator готов, метрики: {names}")
 
     def _validate_data(self, data: dict[str, list]) -> None:
         """Проверяет наличие обязательных полей в датасете."""
@@ -391,6 +405,12 @@ class NoiseTestSuite:
         self.noise_levels = noise_levels or self.DEFAULT_NOISE_LEVELS
         self.noise_docs = noise_docs or NOISE_DOCUMENTS
         self.seed = seed
+        # Отдельный evaluator только с 2 метриками — вдвое меньше LLM-вызовов на noise-тест
+        self._noise_evaluator = RAGEvaluator(
+            llm=evaluator._llm,
+            embeddings=evaluator._embeddings,
+            metric_names=["faithfulness", "answer_relevancy"],
+        )
         log.info(
             f"NoiseTestSuite: уровни шума={self.noise_levels}, "
             f"размер пула шумов={len(self.noise_docs)}"
@@ -434,9 +454,9 @@ class NoiseTestSuite:
 
             noisy_data = {**base_data, "contexts": noisy_contexts}
 
-            # Вычисляем только нужные метрики
+            # Вычисляем только faithfulness + answer_relevancy (2 метрики вместо 4)
             try:
-                df = self.evaluator.compute_metrics(noisy_data)
+                df = self._noise_evaluator.compute_metrics(noisy_data)
                 metric_cols = [c for c in df.columns if c in {
                     "faithfulness", "answer_relevancy"
                 }]
