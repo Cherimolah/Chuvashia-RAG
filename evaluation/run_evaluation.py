@@ -30,8 +30,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import numpy as np
+
 from logger import get_logger
-from config import TEMPERATURE, MAX_TOKENS
+from config import (
+    TEMPERATURE,
+    MAX_TOKENS,
+    TOP_P,
+    FREQUENCY_PENALTY,
+    PRESENCE_PENALTY,
+    N_RESULTS,
+)
 
 log = get_logger(__name__)
 
@@ -86,11 +95,12 @@ async def run_rag_for_question(
     question: str,
     collection,
     openai_client,
-    n_results: int = 5,
+    n_results: int = N_RESULTS,
 ) -> dict:
     """
-    Выполняет полный RAG-цикл для одного вопроса:
-    эмбеддинг → ChromaDB retrieval → RAG-промпт → LLM-ответ.
+    Выполняет полный RAG-цикл для одного вопроса — идентично handlers.py:
+    эмбеддинг (chunk_dialogue + mean pooling) → ChromaDB retrieval →
+    контекст из сырых извлечённых чанков → RAG-промпт → LLM-ответ.
 
     Returns:
         {"question": str, "contexts": list[str], "answer": str}
@@ -101,9 +111,30 @@ async def run_rag_for_question(
         system_prompt,
         rag_prompt,
         chunk_dialogue,
+        extract_period,
     )
 
-    # 1. Эмбеддинг вопроса (один тёрн)
+    # 0. Определяем, нужен ли фильтр по периоду (как в handlers.py)
+    try:
+        period_response = await extract_period(question)
+        if period_response.need_period and period_response.period:
+            where_filter = {
+                "$and": [
+                    {"date": {"$gte": period_response.period.start_turn.timestamp()}},
+                    {"date": {"$lte": period_response.period.end_turn.timestamp()}},
+                ]
+            }
+            log.debug(
+                f"  Период: {period_response.period.start_turn} — "
+                f"{period_response.period.end_turn}"
+            )
+        else:
+            where_filter = None
+    except Exception as e:
+        log.warning(f"  extract_period не сработал, фильтр по дате пропущен: {e}")
+        where_filter = None
+
+    # 1. Эмбеддинг вопроса (как get_embedding: chunk_dialogue + mean pooling)
     messages = [{"role": "user", "content": question}]
     chunks = chunk_dialogue(messages, chunk_size=3, overlap=1)
     texts = [c["text"] for c in chunks]
@@ -113,36 +144,59 @@ async def run_rag_for_question(
         input=texts,
         encoding_format="float",
     )
-    query_vec = embedding_resp.data[0].embedding
+    vectors = [d.embedding for d in embedding_resp.data]
+    query_vec = np.mean(vectors, axis=0).tolist()
 
     # 2. Retrieval из ChromaDB
     chroma_resp = collection.query(
         query_embeddings=[query_vec],
         n_results=n_results,
+        where=where_filter,
     )
-    docs = chroma_resp.get("documents", [[]])[0]
-    log.debug(f"  Retrieval: {len(docs)} документов для '{question[:60]}…'")
 
-    # 3. Сборка RAG-промпта
-    context = "\n".join(docs)
+    # 3. Контекст из сырых извлечённых чанков — ровно как в handlers.py
+    docs = chroma_resp.get("documents", [[]])[0]
+    log.debug(f"  Retrieval: {len(docs)} чанков для '{question[:60]}…'")
+
+    # contexts для RAGAS — список извлечённых документов (то, что идёт в LLM)
+    contexts = docs
+    context = ""
+    for article in docs:
+        context += f"{article}\n\n"
+
+    log.debug(f"  Контекст: {len(docs)} чанков, {len(context)} симв.")
+
+    # 4. Сборка RAG-промпта
     prompt = rag_prompt.format(question=question, context=context)
     llm_messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": prompt},
     ]
 
-    # 4. Ответ LLM
+    # 5. Ответ LLM (те же параметры сэмплирования, что в get_response)
     completion = await openai_client.chat.completions.create(
         model=COMPLETION_MODEL,
         messages=llm_messages,
         temperature=TEMPERATURE,
         max_tokens=MAX_TOKENS,
+        top_p=TOP_P,
+        frequency_penalty=FREQUENCY_PENALTY,
+        presence_penalty=PRESENCE_PENALTY,
     )
     answer = completion.choices[0].message.content
+    if not answer:
+        # Модель-генератор вернула пустой content (None/'').
+        # Если оставить None — RAGAS уронит джоб с KeyError('response'),
+        # т.к. при конвертации в SingleTurnSample None-поля выбрасываются.
+        log.warning(
+            f"  Пустой ответ LLM для вопроса '{question[:60]}…' "
+            f"(finish_reason={completion.choices[0].finish_reason})"
+        )
+        answer = ""
 
     return {
         "question": question,
-        "contexts": docs,
+        "contexts": contexts,
         "answer": answer,
     }
 
@@ -474,6 +528,16 @@ async def run_evaluation_pipeline(
 
     if not rag_data_list:
         raise RuntimeError("Не удалось получить ни одного RAG-ответа. Проверь подключение.")
+
+    # Отсекаем строки с пустым ответом: оценивать их бессмысленно, и они
+    # ломают метрики RAGAS (faithfulness → NaN, KeyError('response') и т.п.)
+    before = len(rag_data_list)
+    rag_data_list = [r for r in rag_data_list if (r.get("answer") or "").strip()]
+    dropped = before - len(rag_data_list)
+    if dropped:
+        log.warning(f"Отброшено {dropped} строк с пустым ответом LLM из {before}")
+    if not rag_data_list:
+        raise RuntimeError("Все ответы LLM пустые — нечего оценивать.")
 
     # Приводим к формату RAGAS
     data_dict = {

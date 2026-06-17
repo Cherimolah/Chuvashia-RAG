@@ -61,8 +61,6 @@ load_dotenv()
 
 log = get_logger(__name__)
 
-from config import MAX_TOKENS
-
 # =========================================================
 # Константы
 # =========================================================
@@ -71,8 +69,11 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_TOKEN = os.getenv("OPENROUTER_TOKEN", "")
 
 # Модели (должны совпадать с llm.py)
-EVAL_LLM_MODEL = "deepseek/deepseek-v3.2"
+EVAL_LLM_MODEL = "deepseek/deepseek-v4-flash"
 EVAL_EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
+
+# Лимит токенов для LLM-судьи RAGAS (запас на длинный JSON-вывод метрик)
+EVAL_LLM_MAX_TOKENS = int(os.getenv("EVAL_LLM_MAX_TOKENS", 10000))
 
 VALID_METRIC_NAMES = {"faithfulness", "context_precision", "context_recall", "answer_relevancy"}
 
@@ -110,13 +111,15 @@ def _make_langchain_llm() -> ChatOpenAI:
             "OPENROUTER_TOKEN не задан в .env. "
             "RAGAS не сможет вызвать LLM для оценки."
         )
-    log.debug(f"Создаю LangChain ChatOpenAI → {EVAL_LLM_MODEL}, max_tokens={MAX_TOKENS}")
+    log.debug(f"Создаю LangChain ChatOpenAI → {EVAL_LLM_MODEL}, max_tokens={EVAL_LLM_MAX_TOKENS}")
     return ChatOpenAI(
         model=EVAL_LLM_MODEL,
         openai_api_key=OPENROUTER_TOKEN,
         openai_api_base=OPENROUTER_BASE_URL,
         temperature=0.0,
-        max_tokens=MAX_TOKENS,
+        max_tokens=EVAL_LLM_MAX_TOKENS,
+        timeout=120,      # защита от зависших запросов к OpenRouter
+        max_retries=3,    # ретраи на пустой/сбойный ответ судьи
     )
 
 
@@ -129,6 +132,7 @@ def _make_langchain_embeddings() -> OpenAIEmbeddings:
         model=EVAL_EMBEDDING_MODEL,
         openai_api_key=OPENROUTER_TOKEN,
         openai_api_base=OPENROUTER_BASE_URL,
+        check_embedding_ctx_length=False,
     )
 
 
@@ -263,15 +267,19 @@ class RAGEvaluator:
     def _to_hf_dataset(self, data: dict[str, list]) -> Dataset:
         """Конвертирует словарь в HuggingFace Dataset для RAGAS."""
         self._validate_data(data)
-        # RAGAS ожидает contexts как List[List[str]]
+        # RAGAS 0.2.x использует новую схему колонок EvaluationDataset:
+        #   question     → user_input
+        #   answer       → response
+        #   contexts     → retrieved_contexts (List[List[str]])
+        #   ground_truth → reference
         formatted_data = {
-            "question": data["question"],
-            "answer": data["answer"],
-            "contexts": [
+            "user_input": data["question"],
+            "response": data["answer"],
+            "retrieved_contexts": [
                 ctx if isinstance(ctx, list) else [ctx]
                 for ctx in data["contexts"]
             ],
-            "ground_truth": data["ground_truth"],
+            "reference": data["ground_truth"],
         }
         ds = Dataset.from_dict(formatted_data)
         log.debug(f"HuggingFace Dataset создан: {len(ds)} строк")

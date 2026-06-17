@@ -10,7 +10,7 @@ import outlines
 
 log = get_logger(__name__)
 
-EMBEDDING_MODEL = "openai/text-embedding-3-small"
+EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
 COMPLETION_MODEL = "deepseek/deepseek-v4-flash"
 
 system_prompt = """
