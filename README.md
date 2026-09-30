@@ -56,28 +56,34 @@
 ## Структура репозитория
 
 ```
-chuvashia-rag/
-├── main.py                  # Точка входа: инициализация таблиц, запуск polling
-├── loader.py                # Инициализация Bot, Dispatcher, OpenAI client, ChromaDB
-├── handlers.py              # Обработчики Telegram-сообщений
-├── llm.py                   # Эмбеддинги, RAG-промпт, агент-классификатор, вызов LLM
-├── database.py              # Модели SQLAlchemy (User, Message) + async CRUD
-├── middleware.py             # Middleware авторегистрации пользователей
-├── config.py                # Загрузка переменных окружения
-├── logger.py                # Настройка логирования (консоль + файл + ротация)
-├── .env.example             # Шаблон переменных окружения
-├── requirements.txt         # Зависимости Python (основной бот)
-├── requirements_ragas.txt   # Зависимости для оценки качества (RAGAS)
-├── merged.jsonl             # Данные для базы знаний
-├── evaluation/              # Пайплайн оценки качества
-│   ├── __init__.py
-│   ├── ragas_evaluation.py  # Обёртки над RAGAS-метриками + тест шумоустойчивости
-│   └── run_evaluation.py    # CLI для запуска оценки с генерацией отчётов
-├── test_data/               # Тестовые данные
-│   ├── questions_chuvash.json  # Датасет вопросов для оценки
-│   └── example_report.json     # Пример отчёта
-├── evaluation_logs/         # Логи и отчёты оценок (генерируются автоматически)
-└── chroma_db/               # Персистентная векторная база (создаётся локально)
+Chuvashia-RAG/
+├── src/chuvashia_rag/           # Python-пакет приложения
+│   ├── __main__.py              # Точка входа бота: таблицы БД + polling
+│   ├── loader.py                # Инициализация Bot, Dispatcher, OpenAI client, ChromaDB
+│   ├── handlers.py              # Обработчики Telegram-сообщений
+│   ├── llm.py                   # Эмбеддинги, RAG-промпт, агент-классификатор, вызов LLM
+│   ├── chunking.py              # Нарезка диалога на окна для эмбеддинга
+│   ├── database.py              # Модели SQLAlchemy (User, Message) + async CRUD
+│   ├── middleware.py            # Middleware авторегистрации пользователей
+│   ├── config.py                # Загрузка переменных окружения
+│   ├── logger.py                # Логирование (консоль + файл + ротация)
+│   └── evaluation/              # Пайплайн оценки качества (RAGAS)
+│       ├── ragas_evaluation.py  # Обёртки над RAGAS-метриками + тест шумоустойчивости
+│       └── run_evaluation.py    # CLI оценки с генерацией JSON/HTML-отчётов
+├── tests/                       # Unit-тесты (pytest)
+├── data/
+│   ├── merged.jsonl             # База знаний: 8 496 статей chuvash.org
+│   └── eval/                    # Эталонный датасет вопросов и пример отчёта
+├── reports/                     # Результаты оценок RAGAS (май–июнь 2026)
+│   └── evaluation_logs/         # Сырые ответы и копии отчётов каждого прогона
+├── docs/                        # Model Card, BPMN, технический долг
+├── pyproject.toml               # Зависимости и настройки ruff / mypy / pytest
+├── poetry.lock                  # Зафиксированные версии всех пакетов
+├── poetry.toml                  # .venv создаётся внутри проекта
+├── requirements.txt             # Экспорт из poetry.lock (бот)
+├── requirements-dev.txt         # Экспорт из poetry.lock (бот + eval + dev)
+├── .pre-commit-config.yaml      # Хуки: ruff, mypy, gitleaks, poetry export и др.
+└── chroma_db/                   # Векторная база (создаётся локально, не в git)
 ```
 
 ---
@@ -101,13 +107,26 @@ chuvashia-rag/
 
 ### 1. Клонирование и установка зависимостей
 
+Нужны Python 3.11–3.13 и [Poetry](https://python-poetry.org/) 2.x.
+
 ```bash
-git clone https://gitverse.ru/Vsemivladeu/Chuvashia-RAG.git
+git clone https://github.com/Cherimolah/Chuvashia-RAG.git
 cd Chuvashia-RAG
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+poetry install                 # создаст .venv в папке проекта и поставит бота
+poetry install --with eval     # + зависимости для оценки качества (RAGAS)
+poetry install --with eval,dev # + ruff, mypy, pytest, pre-commit (для разработки)
 ```
+
+Без Poetry окружение собирается из экспортированных файлов:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt && pip install -e . --no-deps
+```
+
+Папка `.venv` в git не хранится: окружение полностью воспроизводится из
+`pyproject.toml` + `poetry.lock`.
 
 ### 2. Настройка переменных окружения
 
@@ -168,7 +187,7 @@ collection.add(
 ### 5. Запуск
 
 ```bash
-python main.py
+poetry run chuvashia-bot       # или: poetry run python -m chuvashia_rag
 ```
 
 ---
@@ -201,23 +220,23 @@ python main.py
 ### Установка зависимостей для оценки
 
 ```bash
-pip install -r requirements_ragas.txt
+poetry install --with eval
 ```
 
 ### Запуск оценки
 
 ```bash
 # Базовый запуск (50 вопросов)
-python -m evaluation.run_evaluation --test-size 50 --output results.json
+poetry run chuvashia-eval --test-size 50 --output results.json
 
 # Только определённые категории
-python -m evaluation.run_evaluation --test-size 20 --categories culture mythology
+poetry run chuvashia-eval --test-size 20 --categories culture mythology
 
 # Без теста шумоустойчивости (быстрее)
-python -m evaluation.run_evaluation --test-size 50 --skip-noise
+poetry run chuvashia-eval --test-size 50 --skip-noise
 
 # Только две метрики (меньше токенов)
-python -m evaluation.run_evaluation --test-size 50 --metrics faithfulness answer_relevancy
+poetry run chuvashia-eval --test-size 50 --metrics faithfulness answer_relevancy
 ```
 
 ### Метрики
@@ -230,6 +249,27 @@ python -m evaluation.run_evaluation --test-size 50 --metrics faithfulness answer
 | **Answer Relevancy** | Релевантность ответа вопросу |
 
 Результаты сохраняются в JSON и HTML форматах с визуализацией (radar chart, таблицы слабых примеров, рекомендации).
+
+---
+
+## Разработка
+
+```bash
+poetry install --with eval,dev
+poetry run pre-commit install           # хуки запускаются при каждом git commit
+poetry run pre-commit run --all-files   # прогон всех проверок вручную
+poetry run pytest                       # unit-тесты
+```
+
+Хуки pre-commit: `ruff` (линтер + форматтер), `mypy` (типы), `gitleaks`
+(секреты), `check-added-large-files` (защита от коммита датасетов и
+`chroma_db`), `poetry-check` и `poetry-export` (синхронизация `poetry.lock` и
+`requirements*.txt`).
+
+Добавить зависимость: `poetry add <пакет>` (или `poetry add --group eval <пакет>`),
+после чего pre-commit сам обновит `requirements*.txt`.
+
+Известные ограничения и отложенные доработки — в [docs/TECH_DEBT.md](docs/TECH_DEBT.md).
 
 ---
 
