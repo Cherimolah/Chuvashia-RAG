@@ -6,9 +6,9 @@ import time
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from config import LOG_LEVEL
+from chuvashia_rag.config import LOG_LEVEL, PROJECT_ROOT
 
-LOG_DIR = Path(__file__).parent / 'logs'
+LOG_DIR = PROJECT_ROOT / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 ROOT_NAME = 'chuvashia'
 

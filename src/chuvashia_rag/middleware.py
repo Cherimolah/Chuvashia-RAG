@@ -3,8 +3,8 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User
 
-from database import db
-from logger import get_logger
+from chuvashia_rag.database import db
+from chuvashia_rag.logger import get_logger
 
 log = get_logger(__name__)
 

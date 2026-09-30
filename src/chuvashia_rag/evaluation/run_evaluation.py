@@ -14,17 +14,12 @@ import argparse
 import asyncio
 import json
 import logging
+import math
 import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-
-# -------------------------------------------------------
-# Путь к корню проекта (для импортов llm.py, loader.py и т.д.)
-# -------------------------------------------------------
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 from dotenv import load_dotenv
 
@@ -32,8 +27,9 @@ load_dotenv()
 
 import numpy as np
 
-from logger import get_logger
-from config import (
+from chuvashia_rag.logger import get_logger
+from chuvashia_rag.config import (
+    PROJECT_ROOT,
     TEMPERATURE,
     MAX_TOKENS,
     TOP_P,
@@ -47,10 +43,10 @@ log = get_logger(__name__)
 # -------------------------------------------------------
 # Директория для логов оценки
 # -------------------------------------------------------
-EVAL_LOGS_DIR = PROJECT_ROOT / "evaluation_logs"
+EVAL_LOGS_DIR = PROJECT_ROOT / "reports" / "evaluation_logs"
 EVAL_LOGS_DIR.mkdir(exist_ok=True)
 
-TEST_DATA_PATH = PROJECT_ROOT / "test_data" / "questions_chuvash.json"
+TEST_DATA_PATH = PROJECT_ROOT / "data" / "eval" / "questions_chuvash.json"
 
 
 # =========================================================
@@ -105,7 +101,7 @@ async def run_rag_for_question(
     Returns:
         {"question": str, "contexts": list[str], "answer": str}
     """
-    from llm import (
+    from chuvashia_rag.llm import (
         EMBEDDING_MODEL,
         COMPLETION_MODEL,
         system_prompt,
@@ -400,6 +396,20 @@ def _render_html_report(report: dict, output_path: Path) -> None:
 # Генерация рекомендаций
 # =========================================================
 
+def to_json_safe(value):
+    """Заменяет NaN/Inf на None: json.dump пишет их как NaN, а это невалидный JSON.
+
+    RAGAS возвращает NaN, когда метрику не удалось посчитать для примера.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {k: to_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_json_safe(v) for v in value]
+    return value
+
+
 def generate_recommendations(summary: dict, noise_report: dict) -> list[str]:
     """Автоматически генерирует рекомендации по результатам оценки."""
     recs = []
@@ -555,7 +565,7 @@ async def run_evaluation_pipeline(
 
     # ── Шаг 4: RAGAS метрики ─────────────────────────────────
     log.info("Шаг 4/5: Вычисление RAGAS метрик…")
-    from evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
+    from chuvashia_rag.evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
 
     evaluator = RAGEvaluator(metric_names=metric_names)
     results_df = evaluator.compute_metrics(data_dict)
@@ -571,7 +581,7 @@ async def run_evaluation_pipeline(
 
     # ── Шаг 5: Генерация отчётов ──────────────────────────────
     log.info("Шаг 5/5: Генерация отчётов…")
-    from llm import EMBEDDING_MODEL, COMPLETION_MODEL
+    from chuvashia_rag.llm import EMBEDDING_MODEL, COMPLETION_MODEL
 
     recommendations = generate_recommendations(summary, noise_report)
 
@@ -593,7 +603,7 @@ async def run_evaluation_pipeline(
 
     # JSON отчёт
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
+        json.dump(to_json_safe(report), f, ensure_ascii=False, indent=2, allow_nan=False)
     log.info(f"✅ JSON отчёт: {output_path}")
 
     # HTML отчёт
@@ -605,7 +615,7 @@ async def run_evaluation_pipeline(
     ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_copy = EVAL_LOGS_DIR / f"report_{ts_str}.json"
     with open(log_copy, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
+        json.dump(to_json_safe(report), f, ensure_ascii=False, indent=2, allow_nan=False)
 
     elapsed = time.perf_counter() - pipeline_start
     log.info(f"🏁 Pipeline завершён за {elapsed:.1f} сек")

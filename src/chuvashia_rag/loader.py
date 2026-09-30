@@ -2,9 +2,9 @@ from aiogram import Bot, Dispatcher
 from openai import OpenAI
 import chromadb
 
-from config import TELEGRAM_TOKEN, OPENROUTER_TOKEN
-from middleware import UserMiddleware
-from logger import get_logger
+from chuvashia_rag.config import TELEGRAM_TOKEN, OPENROUTER_TOKEN
+from chuvashia_rag.middleware import UserMiddleware
+from chuvashia_rag.logger import get_logger
 
 log = get_logger(__name__)
 

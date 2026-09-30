@@ -4,11 +4,11 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.command import CommandStart
 from aiogram import F
 
-from loader import dp, collection, chroma_client
-from llm import get_embedding, rag_prompt, get_response, extract_period
-from database import db
-from config import N_RESULTS
-from logger import get_logger, preview, timed
+from chuvashia_rag.loader import dp, collection, chroma_client
+from chuvashia_rag.llm import get_embedding, rag_prompt, get_response, extract_period
+from chuvashia_rag.database import db
+from chuvashia_rag.config import N_RESULTS
+from chuvashia_rag.logger import get_logger, preview, timed
 
 log = get_logger(__name__)
 

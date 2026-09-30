@@ -5,7 +5,7 @@ evaluation/ragas_evaluation.py
 Содержит классы RAGEvaluator и NoiseTestSuite.
 
 Использование:
-    from evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
+    from chuvashia_rag.evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
 
     evaluator = RAGEvaluator()
     results = await evaluator.evaluate_dataset(data)
@@ -25,11 +25,7 @@ import pandas as pd
 from datasets import Dataset
 from dotenv import load_dotenv
 
-# Путь к корню проекта (папка выше evaluation/)
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from logger import get_logger
+from chuvashia_rag.logger import get_logger
 
 # --- RAGAS imports ---
 try:

@@ -5,8 +5,8 @@ from sqlalchemy import (
     select, update, ForeignKey, delete,
 )
 
-from config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, DB_NAME
-from logger import get_logger, preview
+from chuvashia_rag.config import PG_USER, PG_PASSWORD, PG_HOST, PG_PORT, DB_NAME
+from chuvashia_rag.logger import get_logger, preview
 
 log = get_logger(__name__)
 

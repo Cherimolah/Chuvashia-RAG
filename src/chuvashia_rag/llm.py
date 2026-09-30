@@ -1,9 +1,10 @@
 import datetime
 
 import numpy as np
-from loader import client
-from logger import get_logger, preview, timed
-from config import TEMPERATURE, MAX_TOKENS, TOP_P, FREQUENCY_PENALTY, PRESENCE_PENALTY
+from chuvashia_rag.loader import client
+from chuvashia_rag.chunking import chunk_dialogue
+from chuvashia_rag.logger import get_logger, preview, timed
+from chuvashia_rag.config import TEMPERATURE, MAX_TOKENS, TOP_P, FREQUENCY_PENALTY, PRESENCE_PENALTY
 
 from pydantic import BaseModel
 import outlines
@@ -49,39 +50,6 @@ class PeriodModel(BaseModel):
 class PeriodResponse(BaseModel):
     need_period: bool
     period: PeriodModel | None
-
-
-def chunk_dialogue(messages, chunk_size=3, overlap=1):
-    chunks = []
-    if len(messages) < chunk_size:
-        for i in range(0, len(messages)):
-            text = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-            chunks.append({
-                "text": text,
-                "start_turn": i,
-                "end_turn": i + len(messages) - 1
-            })
-        log.debug(
-            f'chunk_dialogue: messages={len(messages)} < chunk_size={chunk_size}, '
-            f'создал {len(chunks)} коротких чанков'
-        )
-        return chunks
-
-    for i in range(0, len(messages), chunk_size - overlap):
-        window = messages[i:i + chunk_size]
-        if len(window) < 2:  # пропускаем слишком маленькие хвосты
-            continue
-        text = "\n".join(f"{m['role']}: {m['content']}" for m in window)
-        chunks.append({
-            "text": text,
-            "start_turn": i,
-            "end_turn": i + len(window) - 1
-        })
-    log.debug(
-        f'chunk_dialogue: messages={len(messages)}, '
-        f'chunk_size={chunk_size}, overlap={overlap} → {len(chunks)} чанков'
-    )
-    return chunks
 
 
 async def get_embedding(messages: list[dict[str, str]]) -> list[float]:

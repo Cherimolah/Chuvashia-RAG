@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 
 load_dotenv()
+
+# Корень репозитория: src/chuvashia_rag/config.py -> ../../
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -15,7 +19,7 @@ PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_HOST = os.getenv("PG_HOST")
 PG_PORT = os.getenv("PG_PORT")
 DB_NAME = os.getenv("DB_NAME")
-LOG_LEVEL = os.getenv("LOG_LEVEL")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 TEMPERATURE       = float(os.getenv("TEMPERATURE", 0.4))
 MAX_TOKENS        = int(os.getenv("MAX_TOKENS", 10000))
