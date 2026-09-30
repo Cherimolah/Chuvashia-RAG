@@ -1,0 +1,91 @@
+[project]
+name = "chuvashia-rag"
+version = "0.2.0"
+description = "Telegram RAG-бот о культуре Чувашии, отвечающий на чувашском языке"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11,<3.14"
+authors = [
+    { name = "Cherimolah" },
+    { name = "MateLr" },
+    { name = "Rey_2903" },
+    { name = "Vsevolod Shchanov", email = "vsshchanov@gmail.com" },
+]
+dependencies = [
+    "aiogram (>=3.28.2,<4.0.0)",
+    "openai (>=1.35.0,<3.0.0)",
+    "chromadb (>=1.5.9,<2.0.0)",
+    "sqlalchemy[asyncio] (>=2.0.0,<3.0.0)",
+    "asyncpg (>=0.30.0,<1.0.0)",
+    "outlines (>=1.3.0,<2.0.0)",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "numpy (>=2.0.0,<3.0.0)",
+]
+
+[project.scripts]
+chuvashia-bot = "chuvashia_rag.__main__:run"
+chuvashia-eval = "chuvashia_rag.evaluation.run_evaluation:main"
+
+[tool.poetry]
+packages = [{ include = "chuvashia_rag", from = "src" }]
+
+# Оценка качества (RAGAS) — ставится отдельно: poetry install --with eval
+[tool.poetry.group.eval]
+optional = true
+
+[tool.poetry.group.eval.dependencies]
+ragas = ">=0.2.0,<0.3.0"
+# ragas 0.2.x импортирует langchain_community.chat_models.vertexai,
+# который удалён в langchain-community 0.4 — держим всё семейство на 0.3
+langchain = ">=0.3.0,<0.4.0"
+langchain-core = ">=0.3.0,<0.4.0"
+langchain-community = ">=0.3.0,<0.4.0"
+langchain-openai = ">=0.3.0,<0.4.0"
+datasets = ">=2.20.0"
+pandas = ">=2.0.0"
+plotly = ">=5.17.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.16.9"
+mypy = "^2.3.1"
+pytest = "^8.4.0"
+pre-commit = "^4.3.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["chuvashia_rag"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

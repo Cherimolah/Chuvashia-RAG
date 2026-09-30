@@ -1,0 +1,7 @@
+# Локальные настройки Poetry для этого репозитория.
+# Виртуальное окружение создаётся в ./.venv (сама папка в .gitignore),
+# так IDE находит интерпретатор автоматически, а окружение воспроизводится
+# из pyproject.toml + poetry.lock одной командой: poetry install
+[virtualenvs]
+in-project = true
+create = true

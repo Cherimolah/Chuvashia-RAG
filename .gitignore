@@ -219,3 +219,9 @@ __marimo__/
 chroma_db/*
 
 chat_log.md
+# --- Chuvashia-RAG ---
+# Логи бота (logs/app.log, logs/errors.log)
+logs/
+# Кэши линтеров и тайпчекера
+.ruff_cache/
+.mypy_cache/

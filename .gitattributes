@@ -1,0 +1,4 @@
+# Единые окончания строк (LF) для всех текстовых файлов независимо от ОС.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
