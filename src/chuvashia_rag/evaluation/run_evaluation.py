@@ -21,22 +21,21 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 from dotenv import load_dotenv
 
-load_dotenv()
-
-import numpy as np
-
-from chuvashia_rag.logger import get_logger
 from chuvashia_rag.config import (
+    FREQUENCY_PENALTY,
+    MAX_TOKENS,
+    N_RESULTS,
+    PRESENCE_PENALTY,
     PROJECT_ROOT,
     TEMPERATURE,
-    MAX_TOKENS,
     TOP_P,
-    FREQUENCY_PENALTY,
-    PRESENCE_PENALTY,
-    N_RESULTS,
 )
+from chuvashia_rag.logger import get_logger
+
+load_dotenv()
 
 log = get_logger(__name__)
 
@@ -54,9 +53,11 @@ TEST_DATA_PATH = PROJECT_ROOT / "data" / "eval" / "questions_chuvash.json"
 # не инициализировать Telegram-бота)
 # =========================================================
 
+
 def _init_chroma_collection():
     """Инициализирует ChromaDB коллекцию независимо от loader.py."""
     import chromadb
+
     path = str(PROJECT_ROOT / "chroma_db")
     log.info(f"Подключение к ChromaDB: path={path}")
     client = chromadb.PersistentClient(path=path)
@@ -74,6 +75,7 @@ def _init_chroma_collection():
 def _init_openai_client():
     """Инициализирует AsyncOpenAI клиент для OpenRouter."""
     from openai import AsyncOpenAI
+
     token = os.getenv("OPENROUTER_TOKEN", "")
     if not token:
         raise ValueError("OPENROUTER_TOKEN не задан в .env")
@@ -86,6 +88,7 @@ def _init_openai_client():
 # =========================================================
 # Async RAG pipeline для сбора данных
 # =========================================================
+
 
 async def run_rag_for_question(
     question: str,
@@ -102,12 +105,12 @@ async def run_rag_for_question(
         {"question": str, "contexts": list[str], "answer": str}
     """
     from chuvashia_rag.llm import (
-        EMBEDDING_MODEL,
         COMPLETION_MODEL,
-        system_prompt,
-        rag_prompt,
+        EMBEDDING_MODEL,
         chunk_dialogue,
         extract_period,
+        rag_prompt,
+        system_prompt,
     )
 
     # 0. Определяем, нужен ли фильтр по периоду (как в handlers.py)
@@ -121,8 +124,7 @@ async def run_rag_for_question(
                 ]
             }
             log.debug(
-                f"  Период: {period_response.period.start_turn} — "
-                f"{period_response.period.end_turn}"
+                f"  Период: {period_response.period.start_turn} — {period_response.period.end_turn}"
             )
         else:
             where_filter = None
@@ -166,7 +168,7 @@ async def run_rag_for_question(
     prompt = rag_prompt.format(question=question, context=context)
     llm_messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user",   "content": prompt},
+        {"role": "user", "content": prompt},
     ]
 
     # 5. Ответ LLM (те же параметры сэмплирования, что в get_response)
@@ -218,11 +220,9 @@ async def collect_rag_responses(
         async with semaphore:
             q_text = q_item.get("question") or q_item.get("question_ru", "")
             gt = q_item.get("ground_truth") or q_item.get("ground_truth_ru", "")
-            log.info(f"[{i+1}/{total}] Обрабатываю: {q_text[:70]}…")
+            log.info(f"[{i + 1}/{total}] Обрабатываю: {q_text[:70]}…")
             try:
-                rag_result = await run_rag_for_question(
-                    q_text, collection, openai_client
-                )
+                rag_result = await run_rag_for_question(q_text, collection, openai_client)
                 return {
                     **rag_result,
                     "ground_truth": gt,
@@ -245,11 +245,13 @@ async def collect_rag_responses(
 # Генерация HTML отчёта
 # =========================================================
 
+
 def _render_html_report(report: dict, output_path: Path) -> None:
     """Генерирует HTML-отчёт с таблицами и визуализациями."""
     try:
         import plotly.graph_objects as go
         import plotly.io as pio
+
         has_plotly = True
     except ImportError:
         has_plotly = False
@@ -263,13 +265,15 @@ def _render_html_report(report: dict, output_path: Path) -> None:
     if has_plotly and summary:
         cats = list(summary.keys())
         vals = [summary[m]["mean"] for m in cats]
-        fig = go.Figure(data=go.Scatterpolar(
-            r=vals + [vals[0]],
-            theta=cats + [cats[0]],
-            fill="toself",
-            line_color="#4F6EF7",
-            fillcolor="rgba(79, 110, 247, 0.2)",
-        ))
+        fig = go.Figure(
+            data=go.Scatterpolar(
+                r=vals + [vals[0]],
+                theta=cats + [cats[0]],
+                fill="toself",
+                line_color="#4F6EF7",
+                fillcolor="rgba(79, 110, 247, 0.2)",
+            )
+        )
         fig.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
             title="Сводка метрик (radar chart)",
@@ -280,9 +284,7 @@ def _render_html_report(report: dict, output_path: Path) -> None:
     # Noise degradation bar chart
     noise_chart_html = ""
     if has_plotly and noise:
-        noise_levels = sorted([
-            k for k in noise if k.startswith("noise_") and "pct" in k
-        ])
+        noise_levels = sorted([k for k in noise if k.startswith("noise_") and "pct" in k])
         for metric_name in ["faithfulness", "answer_relevancy"]:
             vals_n = []
             labels_n = []
@@ -293,11 +295,14 @@ def _render_html_report(report: dict, output_path: Path) -> None:
                     vals_n.append(m["mean"])
                     labels_n.append(lk.replace("noise_", "").replace("pct", "%"))
             if vals_n:
-                fig2 = go.Figure(go.Bar(
-                    x=labels_n, y=vals_n,
-                    marker_color="#F76B4F",
-                    name=metric_name,
-                ))
+                fig2 = go.Figure(
+                    go.Bar(
+                        x=labels_n,
+                        y=vals_n,
+                        marker_color="#F76B4F",
+                        name=metric_name,
+                    )
+                )
                 fig2.update_layout(
                     title=f"Шумоустойчивость: {metric_name}",
                     yaxis=dict(range=[0, 1]),
@@ -310,12 +315,12 @@ def _render_html_report(report: dict, output_path: Path) -> None:
     weak = report.get("weak_examples", [])
     if weak:
         rows = "".join(
-            f"<tr><td>{w.get('id','')}</td>"
-            f"<td>{w.get('question','')[:80]}</td>"
-            f"<td>{w.get('faithfulness','N/A')}</td>"
-            f"<td>{w.get('context_precision','N/A')}</td>"
-            f"<td>{w.get('context_recall','N/A')}</td>"
-            f"<td>{w.get('answer_relevancy','N/A')}</td></tr>"
+            f"<tr><td>{w.get('id', '')}</td>"
+            f"<td>{w.get('question', '')[:80]}</td>"
+            f"<td>{w.get('faithfulness', 'N/A')}</td>"
+            f"<td>{w.get('context_precision', 'N/A')}</td>"
+            f"<td>{w.get('context_recall', 'N/A')}</td>"
+            f"<td>{w.get('answer_relevancy', 'N/A')}</td></tr>"
             for w in weak[:20]
         )
         weak_html = f"""
@@ -367,8 +372,8 @@ def _render_html_report(report: dict, output_path: Path) -> None:
 <div class="meta">
     <b>Дата:</b> {ts} &nbsp;|&nbsp;
     <b>Вопросов:</b> {n} &nbsp;|&nbsp;
-    <b>Модель LLM:</b> {report.get("llm_model","?")} &nbsp;|&nbsp;
-    <b>Embedding:</b> {report.get("embedding_model","?")}
+    <b>Модель LLM:</b> {report.get("llm_model", "?")} &nbsp;|&nbsp;
+    <b>Embedding:</b> {report.get("embedding_model", "?")}
 </div>
 
 <h2>📈 Сводная таблица метрик</h2>
@@ -396,6 +401,7 @@ def _render_html_report(report: dict, output_path: Path) -> None:
 # Генерация рекомендаций
 # =========================================================
 
+
 def to_json_safe(value):
     """Заменяет NaN/Inf на None: json.dump пишет их как NaN, а это невалидный JSON.
 
@@ -421,27 +427,27 @@ def generate_recommendations(summary: dict, noise_report: dict) -> list[str]:
 
     if faith < 0.7:
         recs.append(
-            "🔴 Faithfulness низкий ({:.2f}): LLM добавляет информацию "
+            f"🔴 Faithfulness низкий ({faith:.2f}): LLM добавляет информацию "
             "не из контекста. Ужесточи system_prompt — укажи явно "
-            '"отвечай ТОЛЬКО на основе предоставленного контекста".'.format(faith)
+            '"отвечай ТОЛЬКО на основе предоставленного контекста".'
         )
     if ctx_prec < 0.7:
         recs.append(
-            "🔴 Context Precision низкий ({:.2f}): ChromaDB возвращает "
+            f"🔴 Context Precision низкий ({ctx_prec:.2f}): ChromaDB возвращает "
             "нерелевантные документы. Попробуй уменьшить n_results (сейчас 5) "
-            "или применить re-ranking (Cross-Encoder).".format(ctx_prec)
+            "или применить re-ranking (Cross-Encoder)."
         )
     if ctx_rec < 0.6:
         recs.append(
-            "🟡 Context Recall низкий ({:.2f}): система пропускает "
+            f"🟡 Context Recall низкий ({ctx_rec:.2f}): система пропускает "
             "нужные документы. Проверь чанкинг данных в ChromaDB — "
-            "возможно chunk_size слишком велик и информация размыта.".format(ctx_rec)
+            "возможно chunk_size слишком велик и информация размыта."
         )
     if ans_rel < 0.7:
         recs.append(
-            "🟡 Answer Relevancy низкий ({:.2f}): ответы отклоняются "
+            f"🟡 Answer Relevancy низкий ({ans_rel:.2f}): ответы отклоняются "
             "от темы. Добавь в system_prompt инструкцию отвечать кратко "
-            "и по существу вопроса.".format(ans_rel)
+            "и по существу вопроса."
         )
 
     # Специфичные рекомендации для чувашского языка
@@ -480,6 +486,7 @@ def generate_recommendations(summary: dict, noise_report: dict) -> list[str]:
 # =========================================================
 # Главный пайплайн
 # =========================================================
+
 
 async def run_evaluation_pipeline(
     test_size: int,
@@ -532,7 +539,9 @@ async def run_evaluation_pipeline(
     # ── Шаг 3: Сбор RAG-ответов ──────────────────────────────
     log.info(f"Шаг 3/5: Async сбор RAG-ответов (concurrency={concurrency})…")
     rag_data_list = await collect_rag_responses(
-        questions, collection, openai_client,
+        questions,
+        collection,
+        openai_client,
         concurrency=concurrency,
     )
 
@@ -551,9 +560,9 @@ async def run_evaluation_pipeline(
 
     # Приводим к формату RAGAS
     data_dict = {
-        "question":     [r["question"]    for r in rag_data_list],
-        "answer":       [r["answer"]      for r in rag_data_list],
-        "contexts":     [r["contexts"]    for r in rag_data_list],
+        "question": [r["question"] for r in rag_data_list],
+        "answer": [r["answer"] for r in rag_data_list],
+        "contexts": [r["contexts"] for r in rag_data_list],
         "ground_truth": [r["ground_truth"] for r in rag_data_list],
     }
 
@@ -565,7 +574,7 @@ async def run_evaluation_pipeline(
 
     # ── Шаг 4: RAGAS метрики ─────────────────────────────────
     log.info("Шаг 4/5: Вычисление RAGAS метрик…")
-    from chuvashia_rag.evaluation.ragas_evaluation import RAGEvaluator, NoiseTestSuite
+    from chuvashia_rag.evaluation.ragas_evaluation import NoiseTestSuite, RAGEvaluator
 
     evaluator = RAGEvaluator(metric_names=metric_names)
     results_df = evaluator.compute_metrics(data_dict)
@@ -581,15 +590,15 @@ async def run_evaluation_pipeline(
 
     # ── Шаг 5: Генерация отчётов ──────────────────────────────
     log.info("Шаг 5/5: Генерация отчётов…")
-    from chuvashia_rag.llm import EMBEDDING_MODEL, COMPLETION_MODEL
+    from chuvashia_rag.llm import COMPLETION_MODEL, EMBEDDING_MODEL
 
     recommendations = generate_recommendations(summary, noise_report)
 
     report = {
-        "timestamp":                 datetime.now().isoformat(),
+        "timestamp": datetime.now().isoformat(),
         "total_questions_evaluated": len(rag_data_list),
-        "llm_model":                 COMPLETION_MODEL,
-        "embedding_model":           EMBEDDING_MODEL,
+        "llm_model": COMPLETION_MODEL,
+        "embedding_model": EMBEDDING_MODEL,
         "chunking_config": {
             "chunk_size": 3,
             "overlap": 1,
@@ -640,6 +649,7 @@ async def run_evaluation_pipeline(
 # CLI
 # =========================================================
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Оценка качества RAG-бота на чувашском языке (RAGAS)",
@@ -663,35 +673,54 @@ def parse_args() -> argparse.Namespace:
         """,
     )
     parser.add_argument(
-        "--test-size", type=int, default=50,
+        "--test-size",
+        type=int,
+        default=50,
         help="Количество вопросов для оценки (по умолчанию: 50)",
     )
     parser.add_argument(
-        "--output", type=str, default="results.json",
+        "--output",
+        type=str,
+        default="results.json",
         help="Путь для JSON-отчёта (по умолчанию: results.json)",
     )
     parser.add_argument(
-        "--skip-noise", action="store_true",
+        "--skip-noise",
+        action="store_true",
         help="Пропустить тест шумоустойчивости (быстрее)",
     )
     parser.add_argument(
-        "--concurrency", type=int, default=3,
+        "--concurrency",
+        type=int,
+        default=3,
         help="Параллельные API-запросы (по умолчанию: 3)",
     )
     parser.add_argument(
-        "--categories", nargs="*",
-        choices=["culture", "traditions", "language", "history",
-                 "mythology", "music", "geography", "hard_synthesis",
-                 "trick_questions", "noise_sensitive"],
+        "--categories",
+        nargs="*",
+        choices=[
+            "culture",
+            "traditions",
+            "language",
+            "history",
+            "mythology",
+            "music",
+            "geography",
+            "hard_synthesis",
+            "trick_questions",
+            "noise_sensitive",
+        ],
         help="Фильтр по категориям вопросов",
     )
     parser.add_argument(
-        "--metrics", nargs="+",
+        "--metrics",
+        nargs="+",
         choices=["faithfulness", "context_precision", "context_recall", "answer_relevancy"],
         help="Метрики для вычисления (по умолчанию — все 4). Меньше метрик = меньше токенов.",
     )
     parser.add_argument(
-        "--log-level", default="INFO",
+        "--log-level",
+        default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Уровень логирования",
     )
@@ -702,14 +731,12 @@ def main():
     args = parse_args()
 
     # Настройка уровня логирования
-    logging.getLogger("chuvashia").setLevel(
-        getattr(logging, args.log_level, logging.INFO)
-    )
+    logging.getLogger("chuvashia").setLevel(getattr(logging, args.log_level, logging.INFO))
 
     output_path = Path(args.output).resolve()
 
     try:
-        report = asyncio.run(
+        asyncio.run(
             run_evaluation_pipeline(
                 test_size=args.test_size,
                 output_path=output_path,

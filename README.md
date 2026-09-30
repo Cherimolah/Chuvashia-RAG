@@ -156,15 +156,12 @@ chroma = chromadb.PersistentClient(path="chroma_db")
 collection = chroma.create_collection("chuvashia")
 
 documents = ["Ваш текст 1", "Ваш текст 2", ...]
-embeddings = client.embeddings.create(
-    model="qwen/qwen3-embedding-8b",
-    input=documents
-).data
+embeddings = client.embeddings.create(model="qwen/qwen3-embedding-8b", input=documents).data
 
 collection.add(
     documents=documents,
     embeddings=[e.embedding for e in embeddings],
-    ids=[str(i) for i in range(len(documents))]
+    ids=[str(i) for i in range(len(documents))],
 )
 ```
 

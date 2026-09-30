@@ -11,14 +11,10 @@ evaluation/ragas_evaluation.py
     results = await evaluator.evaluate_dataset(data)
 """
 
-import asyncio
 import json
 import os
 import random
-import sys
 import time
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -30,18 +26,17 @@ from chuvashia_rag.logger import get_logger
 # --- RAGAS imports ---
 try:
     from ragas import evaluate
+    from ragas.embeddings import LangchainEmbeddingsWrapper
+    from ragas.llms import LangchainLLMWrapper
     from ragas.metrics import (
         AnswerRelevancy,
         ContextPrecision,
         ContextRecall,
         Faithfulness,
     )
-    from ragas.llms import LangchainLLMWrapper
-    from ragas.embeddings import LangchainEmbeddingsWrapper
 except ImportError as e:
     raise ImportError(
-        f"RAGAS не установлен: {e}\n"
-        "Установи: pip install -r requirements_ragas.txt"
+        f"RAGAS не установлен: {e}\nУстанови: pip install -r requirements_ragas.txt"
     ) from e
 
 # --- LangChain imports ---
@@ -49,8 +44,7 @@ try:
     from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 except ImportError as e:
     raise ImportError(
-        f"langchain-openai не установлен: {e}\n"
-        "Установи: pip install langchain-openai"
+        f"langchain-openai не установлен: {e}\nУстанови: pip install langchain-openai"
     ) from e
 
 load_dotenv()
@@ -97,6 +91,7 @@ NOISE_DOCUMENTS = [
 # Вспомогательные функции
 # =========================================================
 
+
 def _make_langchain_llm() -> ChatOpenAI:
     """
     Создаёт LangChain-совместимый LLM через OpenRouter.
@@ -104,18 +99,18 @@ def _make_langchain_llm() -> ChatOpenAI:
     """
     if not OPENROUTER_TOKEN:
         raise ValueError(
-            "OPENROUTER_TOKEN не задан в .env. "
-            "RAGAS не сможет вызвать LLM для оценки."
+            "OPENROUTER_TOKEN не задан в .env. RAGAS не сможет вызвать LLM для оценки."
         )
     log.debug(f"Создаю LangChain ChatOpenAI → {EVAL_LLM_MODEL}, max_tokens={EVAL_LLM_MAX_TOKENS}")
-    return ChatOpenAI(
+    # openai_api_key / openai_api_base / max_tokens — pydantic-алиасы, mypy их не видит
+    return ChatOpenAI(  # type: ignore[call-arg]
         model=EVAL_LLM_MODEL,
         openai_api_key=OPENROUTER_TOKEN,
         openai_api_base=OPENROUTER_BASE_URL,
         temperature=0.0,
         max_tokens=EVAL_LLM_MAX_TOKENS,
-        timeout=120,      # защита от зависших запросов к OpenRouter
-        max_retries=3,    # ретраи на пустой/сбойный ответ судьи
+        timeout=120,  # защита от зависших запросов к OpenRouter
+        max_retries=3,  # ретраи на пустой/сбойный ответ судьи
     )
 
 
@@ -124,7 +119,7 @@ def _make_langchain_embeddings() -> OpenAIEmbeddings:
     Создаёт LangChain-совместимые эмбеддинги через OpenRouter.
     """
     log.debug(f"Создаю LangChain Embeddings → {EVAL_EMBEDDING_MODEL}")
-    return OpenAIEmbeddings(
+    return OpenAIEmbeddings(  # type: ignore[call-arg]
         model=EVAL_EMBEDDING_MODEL,
         openai_api_key=OPENROUTER_TOKEN,
         openai_api_base=OPENROUTER_BASE_URL,
@@ -187,6 +182,7 @@ def inject_noise(
 # RAGEvaluator
 # =========================================================
 
+
 class RAGEvaluator:
     """
     Класс для оценки RAG-системы с помощью RAGAS.
@@ -236,7 +232,9 @@ class RAGEvaluator:
         if metric_names is not None:
             unknown = set(metric_names) - VALID_METRIC_NAMES
             if unknown:
-                raise ValueError(f"Неизвестные метрики: {unknown}. Допустимые: {VALID_METRIC_NAMES}")
+                raise ValueError(
+                    f"Неизвестные метрики: {unknown}. Допустимые: {VALID_METRIC_NAMES}"
+                )
             self.metrics = [all_metrics[n] for n in metric_names]
         else:
             self.metrics = list(all_metrics.values())
@@ -255,9 +253,7 @@ class RAGEvaluator:
             )
         lengths = {k: len(v) for k, v in data.items() if k in required}
         if len(set(lengths.values())) > 1:
-            raise ValueError(
-                f"Длины списков не совпадают: {lengths}"
-            )
+            raise ValueError(f"Длины списков не совпадают: {lengths}")
         log.debug(f"Валидация датасета: {list(lengths.items())} — OK")
 
     def _to_hf_dataset(self, data: dict[str, list]) -> Dataset:
@@ -272,8 +268,7 @@ class RAGEvaluator:
             "user_input": data["question"],
             "response": data["answer"],
             "retrieved_contexts": [
-                ctx if isinstance(ctx, list) else [ctx]
-                for ctx in data["contexts"]
+                ctx if isinstance(ctx, list) else [ctx] for ctx in data["contexts"]
             ],
             "reference": data["ground_truth"],
         }
@@ -325,11 +320,15 @@ class RAGEvaluator:
             df.insert(0, "question", data["question"])
 
         log.info(
-            f"Результаты (mean): "
+            "Результаты (mean): "
             + ", ".join(
                 f"{col}={df[col].mean():.3f}"
-                for col in ["faithfulness", "context_precision",
-                            "context_recall", "answer_relevancy"]
+                for col in [
+                    "faithfulness",
+                    "context_precision",
+                    "context_recall",
+                    "answer_relevancy",
+                ]
                 if col in df.columns
             )
         )
@@ -342,17 +341,19 @@ class RAGEvaluator:
         Returns:
             {"faithfulness": {"mean": 0.8, "std": 0.1, "min": 0.5, "max": 1.0}, ...}
         """
-        metric_cols = [c for c in df.columns if c in {
-            "faithfulness", "context_precision", "context_recall", "answer_relevancy"
-        }]
+        metric_cols = [
+            c
+            for c in df.columns
+            if c in {"faithfulness", "context_precision", "context_recall", "answer_relevancy"}
+        ]
         summary = {}
         for col in metric_cols:
             series = df[col].dropna()
             summary[col] = {
                 "mean": round(float(series.mean()), 4),
-                "std":  round(float(series.std()), 4),
-                "min":  round(float(series.min()), 4),
-                "max":  round(float(series.max()), 4),
+                "std": round(float(series.std()), 4),
+                "min": round(float(series.min()), 4),
+                "max": round(float(series.max()), 4),
                 "count": int(series.count()),
             }
         log.info("Сводка метрик:\n" + json.dumps(summary, ensure_ascii=False, indent=2))
@@ -367,9 +368,11 @@ class RAGEvaluator:
         Возвращает строки, где хотя бы одна метрика ниже порога.
         Помогает найти слабые места системы.
         """
-        metric_cols = [c for c in df.columns if c in {
-            "faithfulness", "context_precision", "context_recall", "answer_relevancy"
-        }]
+        metric_cols = [
+            c
+            for c in df.columns
+            if c in {"faithfulness", "context_precision", "context_recall", "answer_relevancy"}
+        ]
         mask = (df[metric_cols] < threshold).any(axis=1)
         weak = df[mask].copy()
         log.info(
@@ -382,6 +385,7 @@ class RAGEvaluator:
 # =========================================================
 # NoiseTestSuite
 # =========================================================
+
 
 class NoiseTestSuite:
     """
@@ -461,19 +465,17 @@ class NoiseTestSuite:
             # Вычисляем только faithfulness + answer_relevancy (2 метрики вместо 4)
             try:
                 df = self._noise_evaluator.compute_metrics(noisy_data)
-                metric_cols = [c for c in df.columns if c in {
-                    "faithfulness", "answer_relevancy"
-                }]
+                metric_cols = [c for c in df.columns if c in {"faithfulness", "answer_relevancy"}]
                 results[f"noise_{int(noise_level * 100)}pct"] = {
                     "noise_level": noise_level,
                     "n_samples": len(df),
                     "metrics": {
                         col: {
                             "mean": round(float(df[col].mean()), 4),
-                            "std":  round(float(df[col].std()),  4),
+                            "std": round(float(df[col].std()), 4),
                         }
                         for col in metric_cols
-                    }
+                    },
                 }
             except Exception as e:
                 log.error(f"Ошибка при noise_level={noise_level}: {e}")
@@ -541,8 +543,5 @@ class NoiseTestSuite:
                         f"фильтрацию нерелевантных документов."
                     )
 
-        log.info(
-            "Анализ шума:\n"
-            + json.dumps(analysis, ensure_ascii=False, indent=2)
-        )
+        log.info("Анализ шума:\n" + json.dumps(analysis, ensure_ascii=False, indent=2))
         return analysis

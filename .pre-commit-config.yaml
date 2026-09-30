@@ -15,7 +15,9 @@ repos:
         exclude: *artifacts
       - id: mixed-line-ending
         args: [--fix=lf]
-        exclude: *artifacts
+        # requirements*.txt генерирует poetry-export (на Windows — с CRLF);
+        # в репозитории их всё равно нормализует .gitattributes
+        exclude: ^(data/|reports/|requirements.*\.txt$)
       - id: check-yaml
       - id: check-toml
       - id: check-json
@@ -43,12 +45,16 @@ repos:
       - id: ruff-format
 
   # --- Проверка типов ---
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+  # Запускается из проектного .venv (poetry install), чтобы mypy видел
+  # настоящие типы aiogram, sqlalchemy, pydantic, а не заглушки Any.
+  - repo: local
     hooks:
       - id: mypy
-        files: ^src/
-        additional_dependencies: [pydantic>=2.13, types-requests]
+        name: mypy
+        entry: poetry run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
 
   # --- Poetry: pyproject валиден, lock синхронизирован, requirements.txt актуален ---
   - repo: https://github.com/python-poetry/poetry

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 # Корень репозитория: src/chuvashia_rag/config.py -> ../../
@@ -21,9 +20,9 @@ PG_PORT = os.getenv("PG_PORT")
 DB_NAME = os.getenv("DB_NAME")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-TEMPERATURE       = float(os.getenv("TEMPERATURE", 0.4))
-MAX_TOKENS        = int(os.getenv("MAX_TOKENS", 10000))
-TOP_P             = float(os.getenv("TOP_P", 0.9))
+TEMPERATURE = float(os.getenv("TEMPERATURE", 0.4))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", 10000))
+TOP_P = float(os.getenv("TOP_P", 0.9))
 FREQUENCY_PENALTY = float(os.getenv("FREQUENCY_PENALTY", 0.1))
-PRESENCE_PENALTY  = float(os.getenv("PRESENCE_PENALTY", 0.1))
-N_RESULTS         = int(os.getenv("N_RESULTS", 5))
+PRESENCE_PENALTY = float(os.getenv("PRESENCE_PENALTY", 0.1))
+N_RESULTS = int(os.getenv("N_RESULTS", 5))

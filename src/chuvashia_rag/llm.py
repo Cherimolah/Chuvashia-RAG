@@ -1,13 +1,14 @@
 import datetime
+from typing import cast
 
 import numpy as np
-from chuvashia_rag.loader import client
-from chuvashia_rag.chunking import chunk_dialogue
-from chuvashia_rag.logger import get_logger, preview, timed
-from chuvashia_rag.config import TEMPERATURE, MAX_TOKENS, TOP_P, FREQUENCY_PENALTY, PRESENCE_PENALTY
-
-from pydantic import BaseModel
 import outlines
+from pydantic import BaseModel
+
+from chuvashia_rag.chunking import chunk_dialogue
+from chuvashia_rag.config import FREQUENCY_PENALTY, MAX_TOKENS, PRESENCE_PENALTY, TEMPERATURE, TOP_P
+from chuvashia_rag.loader import client
+from chuvashia_rag.logger import get_logger, preview, timed
 
 log = get_logger(__name__)
 
@@ -33,11 +34,13 @@ rag_prompt = """
 Ответ на чувашском языке (начни с главной мысли, затем раскрой детали):"""
 
 
-agent_prompt = ('Тебе необходимо решить спрашивает ли пользователях о каких-то событиях '
-                'за конкретный промежуток времени или нет. Если пользователь задают общий вопрос передавай'
-                'need_period=false и period=null. Если пользователь спрашивает события за какой-то период то тебе'
-                ' нужно написать начало и конец периода с которого запрашивает пользователь\n\n'
-                'Текст пользователя: {0}')
+agent_prompt = (
+    "Тебе необходимо решить спрашивает ли пользователях о каких-то событиях "
+    "за конкретный промежуток времени или нет. Если пользователь задают общий вопрос передавай"
+    "need_period=false и period=null. Если пользователь спрашивает события за какой-то период то тебе"
+    " нужно написать начало и конец периода с которого запрашивает пользователь\n\n"
+    "Текст пользователя: {0}"
+)
 
 model = outlines.from_openai(client, "x-ai/grok-4.20")
 
@@ -53,54 +56,48 @@ class PeriodResponse(BaseModel):
 
 
 async def get_embedding(messages: list[dict[str, str]]) -> list[float]:
-    log.info(f'🧬 Эмбеддинг: на входе {len(messages)} сообщений диалога')
+    log.info(f"🧬 Эмбеддинг: на входе {len(messages)} сообщений диалога")
 
     chunks = chunk_dialogue(messages, chunk_size=3, overlap=1)
     texts_only = [chunk["text"] for chunk in chunks]
-    log.debug(f'Получено {len(texts_only)} чанков для эмбеддинга:')
+    log.debug(f"Получено {len(texts_only)} чанков для эмбеддинга:")
     for i, t in enumerate(texts_only):
-        log.debug(f'  чанк[{i}] ({len(t)} симв.): {preview(t, 150)}')
+        log.debug(f"  чанк[{i}] ({len(t)} симв.): {preview(t, 150)}")
 
-    with timed(log, f'API запрос эмбеддингов ({EMBEDDING_MODEL})'):
+    with timed(log, f"API запрос эмбеддингов ({EMBEDDING_MODEL})"):
         embedding = client.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=texts_only,
-            encoding_format="float"
+            model=EMBEDDING_MODEL, input=texts_only, encoding_format="float"
         )
 
     vectors = [d.embedding for d in embedding.data]
     vec = np.mean(vectors, axis=0).tolist()
-    log.debug(f'Mean pooling: усреднено {len(vectors)} векторов')
-    usage = getattr(embedding, 'usage', None)
-    extra = ''
+    log.debug(f"Mean pooling: усреднено {len(vectors)} векторов")
+    usage = getattr(embedding, "usage", None)
+    extra = ""
     if usage is not None:
-        extra = f', tokens prompt={getattr(usage, "prompt_tokens", "?")}'
+        extra = f", tokens prompt={getattr(usage, 'prompt_tokens', '?')}"
     log.info(
-        f'🧬 Эмбеддинг готов: модель={EMBEDDING_MODEL}, dim={len(vec)}, '
-        f'превью={[round(x, 4) for x in vec[:3]]}…{extra}'
+        f"🧬 Эмбеддинг готов: модель={EMBEDDING_MODEL}, dim={len(vec)}, "
+        f"превью={[round(x, 4) for x in vec[:3]]}…{extra}"
     )
     return vec
 
 
 async def get_response(messages: list[dict[str, str]]) -> str:
-    messages.insert(0, {
-        'role': 'system',
-        'content': system_prompt
-    })
+    messages.insert(0, {"role": "system", "content": system_prompt})
 
-    total_chars = sum(len(m['content']) for m in messages)
+    total_chars = sum(len(m["content"]) for m in messages)
     log.info(
-        f'🤖 LLM запрос: модель={COMPLETION_MODEL}, '
-        f'сообщений={len(messages)} (включая system), '
-        f'общая длина={total_chars} симв.'
+        f"🤖 LLM запрос: модель={COMPLETION_MODEL}, "
+        f"сообщений={len(messages)} (включая system), "
+        f"общая длина={total_chars} симв."
     )
     for i, m in enumerate(messages):
         log.debug(
-            f'  [{i}] role={m["role"]} ({len(m["content"])} симв.): '
-            f'{preview(m["content"], 200)}'
+            f"  [{i}] role={m['role']} ({len(m['content'])} симв.): {preview(m['content'], 200)}"
         )
 
-    with timed(log, f'API запрос LLM ({COMPLETION_MODEL})'):
+    with timed(log, f"API запрос LLM ({COMPLETION_MODEL})"):
         completion = client.chat.completions.create(
             model=COMPLETION_MODEL,
             messages=messages,
@@ -112,18 +109,18 @@ async def get_response(messages: list[dict[str, str]]) -> str:
         )
 
     answer = completion.choices[0].message.content
-    usage = getattr(completion, 'usage', None)
+    usage = getattr(completion, "usage", None)
     if usage is not None:
         log.info(
-            f'🤖 LLM usage: prompt={getattr(usage, "prompt_tokens", "?")}, '
-            f'completion={getattr(usage, "completion_tokens", "?")}, '
-            f'total={getattr(usage, "total_tokens", "?")} токенов'
+            f"🤖 LLM usage: prompt={getattr(usage, 'prompt_tokens', '?')}, "
+            f"completion={getattr(usage, 'completion_tokens', '?')}, "
+            f"total={getattr(usage, 'total_tokens', '?')} токенов"
         )
-    log.debug(f'LLM raw answer ({len(answer)} симв.): {preview(answer, 300)}')
+    log.debug(f"LLM raw answer ({len(answer)} симв.): {preview(answer, 300)}")
     return answer
 
 
 async def extract_period(message: str) -> PeriodResponse:
     response = model.generate(agent_prompt.format(message), PeriodResponse)
-    return PeriodResponse.model_validate_json(response)
-
+    # с синхронным OpenAI-клиентом outlines возвращает JSON-строку
+    return PeriodResponse.model_validate_json(cast(str, response))
