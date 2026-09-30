@@ -1,0 +1,66 @@
+# Установка хуков: poetry run pre-commit install
+# Прогон по всему репозиторию: poetry run pre-commit run --all-files
+default_language_version:
+  python: python3.11
+
+repos:
+  # --- Базовые проверки файлов ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # data/ (база знаний) и reports/ (отчёты RAGAS) — артефакты, их не правим
+      - id: trailing-whitespace
+        exclude: &artifacts ^(data|reports)/
+      - id: end-of-file-fixer
+        exclude: *artifacts
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: *artifacts
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: *artifacts  # в старых отчётах RAGAS записан NaN
+      - id: check-merge-conflict
+      - id: debug-statements
+      # Защита от случайного коммита новых датасетов, весов и chroma_db.
+      # Проверяются только добавляемые файлы, уже закоммиченные артефакты не мешают.
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  # --- Поиск секретов (токены Telegram / OpenRouter) ---
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  # --- Линтер и форматтер ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  # --- Проверка типов ---
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        files: ^src/
+        additional_dependencies: [pydantic>=2.13, types-requests]
+
+  # --- Poetry: pyproject валиден, lock синхронизирован, requirements.txt актуален ---
+  - repo: https://github.com/python-poetry/poetry
+    rev: 2.5.1
+    hooks:
+      - id: poetry-check
+        args: [--lock]
+  - repo: https://github.com/python-poetry/poetry-plugin-export
+    rev: 1.10.1
+    hooks:
+      - id: poetry-export
+        args: [--without-hashes, -f, requirements.txt, -o, requirements.txt]
+      - id: poetry-export
+        name: poetry-export (dev + eval)
+        args: [--without-hashes, --with, "dev,eval", -f, requirements.txt, -o, requirements-dev.txt]
