@@ -9,14 +9,14 @@ log = get_logger(__name__)
 
 
 async def main():
-    log.info("🚀 Запуск Chuvashia-RAG бота")
+    log.info("Запуск Chuvashia-RAG бота")
     log.info("Создание таблиц БД (если ещё не созданы)…")
     await db.create_tables()
     log.info("Таблицы готовы. Старт polling…")
     try:
         await dp.start_polling(bot)
     finally:
-        log.info("🛑 Бот остановлен")
+        log.info("Бот остановлен")
 
 
 def run():
